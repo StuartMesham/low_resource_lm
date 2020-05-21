@@ -31,10 +31,6 @@ for url in repo_urls:
         if not name.endswith('/'):
             article = zip.open(name).read().decode('utf-8').strip()
 
-            # discard empty articles
-            if article == '':
-                continue
-
             # fix cases where they don't have spaces between sentences
             article = re.sub(r'\.(?! )', '. ', article)
             article = re.sub(r'\!(?! )', '! ', article)
@@ -46,7 +42,7 @@ for url in repo_urls:
             # replace strange quote character
             article = utils.normalize_quote_characters(article)
 
-            # ignore articles with imbalanced quotes
+            # discard articles with imbalanced quotes
             if article.count('"') % 2 != 0:
                 continue
 
