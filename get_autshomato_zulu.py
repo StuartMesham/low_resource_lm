@@ -13,7 +13,7 @@ parser.add_argument('--output_dir', required=True, help='directory where output 
 args = parser.parse_args()
 
 repo_urls = [
-    'https://sourceforge.net/projects/autshumato/files/Corpora/ENG-ZUL.Release.zip/download',
+    'https://master.dl.sourceforge.net/project/autshumato/Corpora/ENG-ZUL.Release.zip',
 ]
 
 sentence_count = 0
