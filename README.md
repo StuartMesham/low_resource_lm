@@ -4,12 +4,7 @@ A script for downloading and pre-processing Isolezwe articles for language model
 
 ## Usage example:
 
-make a directory to save the dataset to:
+fetch training data:
 ```bash
-mkdir data
-```
-
-run the preprocessing script:
-```bash
-python3 get_isolezwe.py --output_dir=data
+./scripts/fetch_data.sh
 ```
