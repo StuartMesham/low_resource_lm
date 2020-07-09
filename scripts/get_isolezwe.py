@@ -5,7 +5,7 @@ import zipfile
 import os
 from io import BytesIO
 
-import utils
+from scripts import utils
 
 # take --output_dir command-line argument
 parser = argparse.ArgumentParser(description='Download isolezwe dataset (isiZulu).')

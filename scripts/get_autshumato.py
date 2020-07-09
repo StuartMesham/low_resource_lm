@@ -5,7 +5,7 @@ import os
 from io import BytesIO
 
 # take --output_dir command-line argument
-parser = argparse.ArgumentParser(description='Download Autshomato dataset (isiZulu and Sepedi).')
+parser = argparse.ArgumentParser(description='Download Autshumato dataset (isiZulu and Sepedi).')
 parser.add_argument('--output_dir', required=True, help='directory where output files will be saved')
 args = parser.parse_args()
 
@@ -33,8 +33,7 @@ for url, file_name, output_name in datasets:
 
     print('total sentences in {}:'.format(output_name), corpus.count('\n'))
 
-print("""
-Autshomato datasets provided under Creative Commons Attribution Non-Commercial ShareAlike,
-CTexT (Centre for Text Technology, North-West University), South Africa; Department of Arts and Culture, South Africa.
-http://autshumato.sourceforge.net/ and http://www.nwu.ac.za/ctext
-""")
+# print('Autshumato datasets provided under Creative Commons Attribution Non-Commercial ShareAlike, '
+#       'CTexT (Centre for Text Technology, North-West University), South Africa; '
+#       'Department of Arts and Culture, South Africa. '
+#       'http://autshumato.sourceforge.net/ and http://www.nwu.ac.za/ctext')
