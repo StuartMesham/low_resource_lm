@@ -8,7 +8,7 @@ from io import BytesIO
 import utils
 
 # take --output_dir command-line argument
-parser = argparse.ArgumentParser(description='Download isolezwe dataset.')
+parser = argparse.ArgumentParser(description='Download isolezwe dataset (isiZulu).')
 parser.add_argument('--output_dir', required=True, help='directory where output files will be saved')
 args = parser.parse_args()
 
@@ -32,10 +32,12 @@ for url in repo_urls:
             article = zip.open(name).read().decode('utf-8').strip()
 
             # fix cases where they don't have spaces between sentences
+            # TODO Jan: How should we clean end of sentences
             article = re.sub(r'\.(?! )', '. ', article)
             article = re.sub(r'\!(?! )', '! ', article)
             article = re.sub(r'\?(?! )', '? ', article)
 
+            # TODO Jan: How are we tokenizing
             # remove extra whitespace
             article = re.sub('\\s+', ' ', article)
 
@@ -66,3 +68,4 @@ for url in repo_urls:
             sentence_count += len(sentences)
 
 print('total sentences:', sentence_count)
+
