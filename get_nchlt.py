@@ -41,7 +41,7 @@ for url, file_name, output_name in datasets:
     corpus = os.linesep.join([s for s in corpus.splitlines() if s.strip()])
     
     # write article to file (with each sentence on a new line)
-    output_file_name = os.path.join(args.output_dir, os.path.basename(output_name))
+    output_file_name = os.path.join(args.output_dir, output_name)
     with open(output_file_name, 'w', encoding='utf-8') as f:
         f.write(corpus)
     
