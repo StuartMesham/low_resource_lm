@@ -1,6 +1,6 @@
-# Newstools Preprocessing
+# Low-Resource Language Modelling
 
-A script for downloading and pre-processing Isolezwe articles for language modelling.
+Utilities for downloading and preprocessing training data.
 
 ## Usage example:
 
