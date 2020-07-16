@@ -23,9 +23,14 @@ datasets = [
 ]
 
 for url, file_name, output_name in datasets:
+    print('processing:', url)
     r = requests.get(url)
     zip = zipfile.ZipFile(BytesIO(r.content))
-    corpus = zip.open(file_name).read().decode('utf-8').strip()
+    corpus = zip.open(file_name)
+    corpus = corpus.read()
+    corpus = corpus.decode('utf-8')
+    corpus = corpus.strip()
+    corpus = corpus.replace('\r\n', '\n')
 
     # remove the first 2607 lines (Transcription of constitution with poor formatting)
     if file_name is 'isizulu.txt':
