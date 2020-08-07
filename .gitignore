@@ -270,3 +270,4 @@ cython_debug/
 .idea
 
 data
+tokenizers
