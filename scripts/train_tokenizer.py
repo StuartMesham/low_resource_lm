@@ -1,5 +1,7 @@
 import os
-from tokenizers import CharBPETokenizer
+from tokenizers import CharBPETokenizer, Tokenizer
+
+# https://github.com/huggingface/tokenizers/tree/master/bindings/python
 
 zulu_corpus = ['data/autshumato/isizulu.txt', 'data/nchlt/isizulu.txt']
 
@@ -12,6 +14,7 @@ if not os.path.exists('tokenizers'):
 tokenizer.save('tokenizers/isizulu.json')
 
 # Example usage
+# tokenizer = Tokenizer.from_file("tokenizers/isizulu.json")
 encoded = tokenizer.encode("Molweni ndisaphila nkosi.")
 print(encoded.tokens)
 
