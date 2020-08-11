@@ -1,5 +1,5 @@
 import os
-from tokenizers import CharBPETokenizer, Tokenizer
+from tokenizers import CharBPETokenizer
 
 # https://github.com/huggingface/tokenizers/tree/master/bindings/python
 
