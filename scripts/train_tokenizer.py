@@ -8,13 +8,13 @@ zulu_corpus = ['data/autshumato/isizulu.txt', 'data/nchlt/isizulu.txt']
 tokenizer = CharBPETokenizer()
 tokenizer.train(zulu_corpus)
 
-if not os.path.exists('tokenizers'):
-    os.makedirs('tokenizers')
+if not os.path.exists('tokenizers/isizulu'):
+    os.makedirs('tokenizers/isizulu')
 
-tokenizer.save('tokenizers/isizulu.json')
+tokenizer.save('tokenizers/isizulu')
 
 # Example usage
-# tokenizer = Tokenizer.from_file("tokenizers/isizulu.json")
+tokenizer = CharBPETokenizer(merges_file='tokenizers/isizulu/merges.txt', vocab_file='tokenizers/isizulu/vocab.json')
 encoded = tokenizer.encode("Molweni ndisaphila nkosi.")
 print(encoded.tokens)
 
