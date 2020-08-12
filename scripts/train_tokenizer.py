@@ -11,9 +11,9 @@ tokenizer.train(zulu_corpus)
 if not os.path.exists('tokenizers/isizulu'):
     os.makedirs('tokenizers/isizulu')
 
-tokenizer.save('tokenizers/isizulu')
+tokenizer.save('tokenizers/isizulu.json')
 
 # Example usage
-# tokenizer = CharBPETokenizer(merges_file='tokenizers/isizulu/merges.txt', vocab_file='tokenizers/isizulu/vocab.json')
+# tokenizer = Tokenizer.from_file('tokenizers/isizulu.json')
 encoded = tokenizer.encode("Molweni ndisaphila nkosi.")
 print(encoded.tokens)
