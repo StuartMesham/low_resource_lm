@@ -1,6 +1,6 @@
 import os
 import argparse
-from tokenizers import CharBPETokenizer
+from tokenizers import ByteLevelBPETokenizer
 
 # https://github.com/huggingface/tokenizers/tree/master/bindings/python
 
@@ -10,7 +10,7 @@ args = parser.parse_args()
 
 zulu_corpus = ['data/autshumato/isizulu.txt', 'data/nchlt/isizulu.txt']
 
-tokenizer = CharBPETokenizer()
+tokenizer = ByteLevelBPETokenizer()
 tokenizer.train(zulu_corpus, vocab_size=args.vocab_size, show_progress=False)
 
 if not os.path.exists('tokenizers/isizulu'):
@@ -19,6 +19,6 @@ if not os.path.exists('tokenizers/isizulu'):
 tokenizer.save_model('tokenizers/isizulu')
 
 # Example usage
-# tokenizer = CharBPETokenizer(merges_file='tokenizers/isizulu/merges.txt', vocab_file='tokenizers/isizulu/vocab.json')
+# tokenizer = ByteLevelBPETokenizer(merges_file='tokenizers/isizulu/merges.txt', vocab_file='tokenizers/isizulu/vocab.json')
 encoded = tokenizer.encode("Molweni ndisaphila nkosi.")
 print(encoded.tokens)
