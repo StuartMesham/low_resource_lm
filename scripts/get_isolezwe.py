@@ -74,7 +74,7 @@ for url in repo_urls:
 print('total sentences:', sentence_count)
 
 print('merging datasets')
-with open(os.path.join(args.output_dir, os.path.basename("isizulu/isizulu.txt")), 'w', encoding='utf-8') as f:
+with open(os.path.join(args.output_dir + '/isizulu/', os.path.basename("isizulu.txt")), 'w', encoding='utf-8') as f:
     f.write('\n'.join(corpus)+'\n')
 
 
