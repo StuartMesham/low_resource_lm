@@ -24,6 +24,8 @@ datasets = [
 ]
 
 for url, file_name, output_name in datasets:
+    print('processing:', url)
+
     r = requests.get(url)
     zip = zipfile.ZipFile(BytesIO(r.content))
     corpus = zip.open(file_name).read().decode('utf-8').strip()
@@ -39,7 +41,8 @@ for url, file_name, output_name in datasets:
     
     # remove empty lines from corpus
     corpus = os.linesep.join([s for s in corpus.splitlines() if s.strip()])
-    
+    corpus = corpus.replace('\r\n', '\n')
+
     # write article to file (with each sentence on a new line)
     output_file_name = os.path.join(args.output_dir, output_name)
     with open(output_file_name, 'w', encoding='utf-8') as f:

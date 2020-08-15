@@ -6,7 +6,7 @@ from io import BytesIO
 
 # take --output_dir command-line argument
 parser = argparse.ArgumentParser(description='Download Autshumato dataset (isiZulu and Sepedi).')
-parser.add_argument('--output_dir', required=True, help='directory where output files will be saved')
+parser.add_argument('--output_dir', required=True, default='data/autshumato', help='directory where output files will be saved')
 args = parser.parse_args()
 
 datasets = [
@@ -23,12 +23,17 @@ datasets = [
 ]
 
 for url, file_name, output_name in datasets:
+    print('processing:', url)
     r = requests.get(url)
     zip = zipfile.ZipFile(BytesIO(r.content))
-    corpus = zip.open(file_name).read().decode('utf-8').strip()
+    corpus = zip.open(file_name)
+    corpus = corpus.read()
+    corpus = corpus.decode('utf-8')
+    corpus = corpus.strip()
+    corpus = corpus.replace('\r\n', '\n')
 
     # remove the first 2607 lines (Transcription of constitution with poor formatting)
-    if file_name is 'isizulu.txt':
+    if output_name is 'isizulu.txt':
         corpus = corpus.split('\n', 2607)[2607]
     else:
         corpus = corpus.split('\n', 5302)[5302] # Could also use something earlier
