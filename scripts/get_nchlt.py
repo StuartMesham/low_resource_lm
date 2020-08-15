@@ -7,8 +7,7 @@ from io import BytesIO
 
 # take --output_dir command-line argument
 parser = argparse.ArgumentParser(description='Download NCHLT datasets.')
-parser.add_argument('--output_dir', required=True, default='data/nchlt',
-                    help='directory where output files will be saved')
+parser.add_argument('--output_dir', required=True, help='directory where output files will be saved')
 args = parser.parse_args()
 
 datasets = [
@@ -25,25 +24,28 @@ datasets = [
 ]
 
 for url, file_name, output_name in datasets:
+    print('processing:', url)
+
     r = requests.get(url)
     zip = zipfile.ZipFile(BytesIO(r.content))
     corpus = zip.open(file_name).read().decode('utf-8').strip()
-
+    
     # remove the first 11 lines (header)
     corpus = corpus.split('\n', 11)[11]
-
+    
     # remove tags containing article filenames
     corpus = re.sub(r'<fn>.*</fn>', '', corpus)
-
+    
     # put each sentence on a new line
     corpus = corpus.replace('. ', '.\n')
-
+    
     # remove empty lines from corpus
     corpus = os.linesep.join([s for s in corpus.splitlines() if s.strip()])
+    corpus = corpus.replace('\r\n', '\n')
 
     # write article to file (with each sentence on a new line)
     output_file_name = os.path.join(args.output_dir, output_name)
     with open(output_file_name, 'w', encoding='utf-8') as f:
         f.write(corpus)
-
+    
     print('total sentences in {}:'.format(output_name), corpus.count('\n'))
