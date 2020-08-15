@@ -26,11 +26,11 @@ for dataset in datasets:
             corpus = inf.read()
 
             with open(dataset[0] + file[:-4] + '_test.txt', 'w', encoding='utf-8') as f:
-                f.write(corpus[:int(len(corpus) * args.test_split)])
+                f.write(corpus[:int(len(corpus) * args.test_split/100)])
 
             with open(dataset[0] + file[:-4] + '_train.txt', 'w', encoding='utf-8') as f:
-                f.write(corpus[int(len(corpus) * args.test_split):int(len(corpus) * args.train_split) + int(
-                    len(corpus) * args.test_split)])
+                f.write(corpus[int(len(corpus) * args.test_split/100):int(len(corpus) * args.train_split/100) + int(
+                    len(corpus) * args.test_split/100)])
 
             with open(dataset[0] + file[:-4] + '_valid.txt', 'w', encoding='utf-8') as f:
-                f.write(corpus[int(len(corpus) * args.train_split) + int(len(corpus) * args.test_split):])
+                f.write(corpus[int(len(corpus) * args.train_split/100) + int(len(corpus) * args.test_split/100):])
