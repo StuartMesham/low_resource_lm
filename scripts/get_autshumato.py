@@ -13,12 +13,12 @@ datasets = [
     (
         'https://master.dl.sourceforge.net/project/autshumato/Corpora/ENG-ZUL.Release.zip',  # url
         'lcontent.DACB.DataVirVrystellingOpWeb.(eng-zul).zul.1.0.0.CAM.2010-09-23.txt',  # file_name
-        'isizulu.txt',  # output_name
+        'isizulu/isizulu.txt',  # output_name
     ),
     (
         'https://master.dl.sourceforge.net/project/autshumato/Corpora/ENG-NSO.Release.zip',  # url
         'lcontent.DACB.DataVirVrystellingOpWeb.(eng-nso).nso.1.0.0.CAM.2010-09-23.txt',  # file_name
-        'sepedi.txt',  # output_name
+        'sepedi/sepedi.txt',  # output_name
     )
 ]
 

@@ -14,12 +14,12 @@ datasets = [
     (
         'https://repo.sadilar.org/bitstream/handle/20.500.12185/330/corpora.nchlt.nso.zip',  # url
         'nso/2.Corpora/CORP.NCHLT.nso.CLEAN.2.0.txt',  # file_name
-        'sepedi.txt',  # output_name
+        'sepedi/sepedi.txt',  # output_name
     ),
     (
         'http://www.rma.nwu.ac.za/bitstream/handle/20.500.12185/321/corpora.nchlt.zu.zip',  # url
         'zu/2.Corpora/CORP.NCHLT.zu.CLEAN.2.0.txt',  # file_name
-        'isizulu.txt',  # output_name
+        'isizulu/isizulu.txt',  # output_name
     )
 ]
 
