@@ -1,6 +1,6 @@
 #!/bin/bash
 export PYTHONPATH=$PYTHONPATH:`pwd`:`pwd`/scripts
-
+#TODO Not actually writing any files
 echo 'fetching nchlt data'
 mkdir -p data/nchlt
 python3 scripts/get_nchlt.py --output_dir=data/nchlt
