@@ -1,6 +1,6 @@
 #!/bin/bash
 export PYTHONPATH=$PYTHONPATH:`pwd`:`pwd`/scripts
-#TODO Not actually writing any files
+
 echo 'fetching nchlt data'
 mkdir -p data/nchlt
 python3 scripts/get_nchlt.py --output_dir=data/nchlt
@@ -16,3 +16,8 @@ echo
 echo 'fetching isolezwe data'
 mkdir -p data/isolezwe
 python3 scripts/get_isolezwe.py --output_dir=data/isolezwe
+
+echo
+
+echo 'Partitioning datasets'
+python3 scripts/partition_datasets.py

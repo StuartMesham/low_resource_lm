@@ -6,7 +6,7 @@ from io import BytesIO
 
 # take --output_dir command-line argument
 parser = argparse.ArgumentParser(description='Download Autshumato dataset (isiZulu and Sepedi).')
-parser.add_argument('--output_dir', required=True, help='directory where output files will be saved')
+parser.add_argument('--output_dir', required=True, default='data/autshumato', help='directory where output files will be saved')
 args = parser.parse_args()
 
 datasets = [
