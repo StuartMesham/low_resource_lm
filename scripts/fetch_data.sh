@@ -19,6 +19,7 @@ echo
 
 echo 'fetching isolezwe data'
 mkdir -p data/isolezwe
+mkdir -p data/isolezwe/isizulu
 python3 scripts/get_isolezwe.py --output_dir=data/isolezwe
 
 echo
