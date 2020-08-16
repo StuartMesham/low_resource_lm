@@ -16,3 +16,8 @@ echo
 echo 'fetching isolezwe data'
 mkdir -p data/isolezwe
 python3 scripts/get_isolezwe.py --output_dir=data/isolezwe
+
+echo
+
+echo 'Partitioning datasets'
+python3 scripts/partition_datasets.py --awd_lstm=True
