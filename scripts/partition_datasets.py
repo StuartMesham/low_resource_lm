@@ -1,5 +1,4 @@
 import argparse
-import os
 
 parser = argparse.ArgumentParser(description="Separates the datasets into test/train/validate sets")
 parser.add_argument('--test_split', default=10, help='Percentage of data to be used for testing')
