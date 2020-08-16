@@ -13,7 +13,7 @@ parser.add_argument('--awd_lstm', default=False, help='Prepends a space char to 
 args = parser.parse_args()
 assert (args.test_split + args.train_split + args.valid_split == 100), "Dataset splits must add to 100"
 
-isolezwe_files = ['isizulu.txt']
+isolezwe_files = ['isizulu/isizulu.txt']
 autshumato_files = ['isizulu/isizulu.txt', 'sepedi/sepedi.txt']
 nchlt_files = ['isizulu/isizulu.txt', 'sepedi/sepedi.txt']
 datasets = [[args.autshumato_dir, autshumato_files],
