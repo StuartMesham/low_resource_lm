@@ -8,7 +8,7 @@ parser.add_argument('--autshumato_dir', default='data/autshumato/',
                     help='directory where autshumato files can be found')
 parser.add_argument('--isolezwe_dir', default='data/isolezwe/', help='directory where isolezwe files can be found')
 parser.add_argument('--nchlt_dir', default='data/nchlt/', help='directory where nchlt files can be found')
-parser.add_argument('--awd_lstm', default=False, help='Prepends a space char to all lines for awd-lstm implementation')
+# parser.add_argument('--awd_lstm', default=False, help='Prepends a space char to all lines for awd-lstm implementation')
 
 args = parser.parse_args()
 assert (args.test_split + args.train_split + args.valid_split == 100), "Dataset splits must add to 100"
@@ -24,8 +24,26 @@ for dataset in datasets:
     for file in dataset[1]:
         with open(dataset[0] + file[:-4] + '/' + file, 'r', encoding='utf-8') as inf:
             corpus = inf.read()
-            if args.awd_lstm:
-                corpus = ' ' + corpus.replace('\n', '\n ')
+            # Not actually necessary as leading spaces are stripped
+            # TODO: URGENT: BPE
+            #
+            # # train tokenizer
+            #
+            # tokenizer = ByteLevelBPETokenizer()
+            # tokenizer.train(
+            #     args.train_data,
+            #     vocab_size=args.vocab_size,
+            #     special_tokens=['<|endoftext|>'],
+            #     show_progress=False,
+            # )
+            #
+            # if not os.path.exists(args.output_dir):
+            #     os.makedirs(args.output_dir)
+            #
+            # tokenizer.save_model(args.output_dir)
+
+            # if args.awd_lstm:
+            #     corpus = ' ' + corpus.replace('\n', '\n ')
 
             with open(dataset[0] + file[:-4] + '/test.txt', 'w', encoding='utf-8') as f:
                 f.write(corpus[:int(len(corpus) * args.test_split / 100)])
