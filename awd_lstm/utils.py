@@ -11,7 +11,7 @@ def repackage_hidden(h):
 
 
 def batchify(data, bsz, args):
-    # Work out how cleanly we can divide the dataset into bsz parts.
+    # Work out how cleanly we can divide the dataset into bsz(default=80/10/1) parts.
     nbatch = data.size(0) // bsz
     # Trim off any extra elements that wouldn't cleanly fit (remainders).
     data = data.narrow(0, 0, nbatch * bsz)
@@ -24,6 +24,11 @@ def batchify(data, bsz, args):
 
 def get_batch(source, i, args, seq_len=None, evaluation=False):
     seq_len = min(seq_len if seq_len else args.bptt, len(source) - 1 - i)
-    data = source[i:i+seq_len]
-    target = source[i+1:i+1+seq_len].view(-1)
+    data = source[i:i + seq_len]
+    target = source[i + 1:i + 1 + seq_len].view(-1)
     return data, target
+
+
+def debug_print(s, args):
+    if args.debug:
+        print(s)

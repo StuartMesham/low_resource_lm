@@ -2,6 +2,11 @@
 
 Utilities for downloading and preprocessing training data.
 
+# TODO:
+- Fix <unk> and <eos>
+- Add BPE
+- Fix punctuation at end of line
+
 ## Usage example:
 Ensure that all scripts are run from the root directory, <b>not /scripts/</b>
 fetch training data:
