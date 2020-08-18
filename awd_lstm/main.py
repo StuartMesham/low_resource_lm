@@ -112,7 +112,7 @@ test_batch_size = 1
 train_data = batchify(corpus.train, args.batch_size, args)
 val_data = batchify(corpus.valid, eval_batch_size, args)
 test_data = batchify(corpus.test, test_batch_size, args)
-
+# CHECK: Why is validation batching not the same as testing/training
 ###############################################################################
 # Build the model
 ###############################################################################
@@ -174,7 +174,7 @@ def evaluate(data_source, batch_size=10):
     ntokens = len(corpus.dictionary)
     hidden = model.init_hidden(batch_size)
     for i in range(0, data_source.size(0) - 1, args.bptt):
-        data, targets = get_batch(data_source, i, args, evaluation=True)  # CHECK: Wtf is happening here
+        data, targets = get_batch(data_source, i, args, evaluation=True)  # Gets the data and the target data to be produced
         output, hidden = model(data, hidden)
         total_loss += len(data) * criterion(model.decoder.weight, model.decoder.bias, output, targets).data
         hidden = repackage_hidden(hidden)
@@ -241,6 +241,17 @@ def train():
 lr = args.lr
 best_val_loss = []
 stored_loss = 100000000
+
+
+# Run on test data.
+test_loss = evaluate(test_data, test_batch_size)
+print('=' * 89)
+print('| End of training | test loss {:5.2f} | test ppl {:8.2f} | test bpc {:8.3f}'.format(
+    test_loss, math.exp(test_loss), test_loss / math.log(2)))  # NOTE: Ask Jan about bpc here
+print('=' * 89)
+
+
+
 
 # At any point you can hit Ctrl + C to break out of training early.
 try:
