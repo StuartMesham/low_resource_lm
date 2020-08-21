@@ -33,7 +33,7 @@ for url, file_name, output_name in datasets:
     corpus = corpus.replace('\r\n', '\n')
 
     # remove the first 2607 lines (Transcription of constitution with poor formatting)
-    if output_name is 'isizulu.txt':
+    if output_name == 'isizulu.txt':
         corpus = corpus.split('\n', 2607)[2607]
     else:
         corpus = corpus.split('\n', 5302)[5302] # Could also use something earlier
