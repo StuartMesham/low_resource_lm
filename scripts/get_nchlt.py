@@ -3,6 +3,7 @@ import argparse
 import requests
 import zipfile
 import os
+from collections import Counter
 from io import BytesIO
 
 # take --output_dir command-line argument
@@ -40,8 +41,11 @@ for url, file_name, output_name in datasets:
     corpus = corpus.replace('. ', '.\n')
     
     # remove empty lines from corpus
-    corpus = os.linesep.join([s for s in corpus.splitlines() if s.strip()])
-    corpus = corpus.replace('\r\n', '\n')
+    sentences = [s for s in corpus.splitlines() if s.strip()]
+
+    d = Counter(sentences)
+
+    sentences = [sentence for sentence in corpus if d[sentence] < 30 and '\ufeff' not in sentence]
 
     # write article to file (with each sentence on a new line)
     output_file_name = os.path.join(args.output_dir, output_name)

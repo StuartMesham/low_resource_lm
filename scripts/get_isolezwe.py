@@ -4,7 +4,7 @@ import requests
 import zipfile
 import os
 from io import BytesIO
-
+from collections import Counter
 from scripts import utils
 
 # take --output_dir command-line argument
@@ -39,6 +39,9 @@ for url in repo_urls:
             article = re.sub(r'\!(?! )', '! ', article)
             article = re.sub(r'\?(?! )', '? ', article)
 
+            # remove brackets with numbers in them (they seemed to appear often)
+            article = re.sub(r'\(\d*\)', '', article)
+
             # TODO Jan: How are we tokenizing
             # remove extra whitespace
             article = re.sub('\\s+', ' ', article)
@@ -62,14 +65,14 @@ for url in repo_urls:
             if len(sentences) == 0:
                 continue
 
-            # write article to file (with each sentence on a new line)
-            output_file_name = os.path.join(args.output_dir, os.path.basename(name))
-            with open(output_file_name, 'w', encoding='utf-8') as f:
-                f.write('\n'.join(sentences) + '\n')
-
             # update total sentence count
             sentence_count += len(sentences)
             corpus = corpus + sentences
+
+# remove too frequent lines (manual inspection showed that they were mostly web prompts)
+# remove lines that are too short
+d = Counter(corpus)
+corpus = [sentence for sentence in corpus if d[sentence] < 7 and len(sentence) > 15]
 
 print('total sentences:', sentence_count)
 
