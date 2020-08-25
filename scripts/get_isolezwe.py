@@ -4,7 +4,7 @@ import requests
 import zipfile
 import os
 from io import BytesIO
-
+from collections import Counter
 from scripts import utils
 
 # take --output_dir command-line argument
@@ -68,6 +68,11 @@ for url in repo_urls:
             # update total sentence count
             sentence_count += len(sentences)
             corpus = corpus + sentences
+
+# remove too frequent lines (manual inspection showed that they were mostly web prompts)
+# remove lines that are too short
+d = Counter(corpus)
+corpus = [sentence for sentence in corpus if d[sentence] < 7 and len(sentence) > 15]
 
 print('total sentences:', sentence_count)
 
