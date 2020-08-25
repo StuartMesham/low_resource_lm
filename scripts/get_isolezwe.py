@@ -62,11 +62,6 @@ for url in repo_urls:
             if len(sentences) == 0:
                 continue
 
-            # write article to file (with each sentence on a new line)
-            output_file_name = os.path.join(args.output_dir, os.path.basename(name))
-            with open(output_file_name, 'w', encoding='utf-8') as f:
-                f.write('\n'.join(sentences) + '\n')
-
             # update total sentence count
             sentence_count += len(sentences)
             corpus = corpus + sentences
