@@ -119,7 +119,7 @@ test_data = batchify(corpus.test, test_batch_size, args)
 
 from splitcross import SplitCrossEntropyLoss
 
-criterion = None
+criterion = None #CHECK: Could change this for the standard pytorch cross entropy loss
 
 ntokens = len(corpus.dictionary)
 model = model.RNNModel(args.model, ntokens, args.emsize, args.nhid, args.nlayers, args.dropout, args.dropouth,
@@ -129,7 +129,7 @@ if args.resume:
     print('Resuming model ...')
     model_load(args.resume)
     optimizer.param_groups[0]['lr'] = args.lr
-    model.dropouti, model.dropouth, model.dropout, args.dropoute = args.dropouti, args.dropouth, args.dropout, args.dropoute
+    model.dropouti, model.dropouth, model.dropout, model.dropoute = args.dropouti, args.dropouth, args.dropout, args.dropoute
     if args.wdrop:
         from weight_drop import WeightDrop
 
@@ -173,7 +173,7 @@ def evaluate(data_source, batch_size=10):
     total_loss = 0
     ntokens = len(corpus.dictionary)
     hidden = model.init_hidden(batch_size)
-    for i in range(0, data_source.size(0) - 1, args.bptt):
+    for i in range(0, data_source.size(0) - 1, args.bptt): # Jump forwards in bptt (70) increments
         data, targets = get_batch(data_source, i, args, evaluation=True)  # Gets the data and the target data to be produced
         output, hidden = model(data, hidden)
         total_loss += len(data) * criterion(model.decoder.weight, model.decoder.bias, output, targets).data
@@ -248,7 +248,7 @@ test_loss = evaluate(test_data, test_batch_size)
 print('=' * 89)
 print('| End of training | test loss {:5.2f} | test ppl {:8.2f} | test bpc {:8.3f}'.format(
     test_loss, math.exp(test_loss), test_loss / math.log(2)))  # NOTE: Ask Jan about bpc here
-print('=' * 89)
+print('=' * 89)  # NOTE: NOT BPC but rather token level cross entropy etc, can I just divide by avg token length
 
 
 

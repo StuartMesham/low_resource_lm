@@ -1,4 +1,5 @@
 import argparse
+from tokenizers import ByteLevelBPETokenizer
 
 parser = argparse.ArgumentParser(description="Separates the datasets into test/train/validate sets")
 parser.add_argument('--test_split', default=10, help='Percentage of data to be used for testing')
@@ -29,21 +30,19 @@ for dataset in datasets:
             #
             # # train tokenizer
             #
-            # tokenizer = ByteLevelBPETokenizer()
-            # tokenizer.train(
-            #     args.train_data,
-            #     vocab_size=args.vocab_size,
-            #     special_tokens=['<|endoftext|>'],
-            #     show_progress=False,
-            # )
-            #
-            # if not os.path.exists(args.output_dir):
-            #     os.makedirs(args.output_dir)
+            tokenizer = ByteLevelBPETokenizer()
+            tokenizer.train(
+                [dataset[0] + file[:-4] + '/test.txt', dataset[0] + file[:-4] + '/train.txt', dataset[0] + file[:-4] + '/valid.txt'],
+                vocab_size=args.vocab_size,
+                special_tokens=['<|endoftext|>'],
+                show_progress=False,
+            )
+
             #
             # tokenizer.save_model(args.output_dir)
 
-            # if args.awd_lstm:
-            #     corpus = ' ' + corpus.replace('\n', '\n ')
+            if args.awd_lstm:
+                corpus = ' ' + corpus.replace('\n', '\n ')
 
             with open(dataset[0] + file[:-4] + '/test.txt', 'w', encoding='utf-8') as f:
                 f.write(corpus[:int(len(corpus) * args.test_split / 100)])
