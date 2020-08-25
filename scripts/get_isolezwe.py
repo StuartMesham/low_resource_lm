@@ -39,6 +39,9 @@ for url in repo_urls:
             article = re.sub(r'\!(?! )', '! ', article)
             article = re.sub(r'\?(?! )', '? ', article)
 
+            # remove brackets with numbers in them (they seemed to appear often)
+            article = re.sub(r'\(\d*\)', '', article)
+
             # TODO Jan: How are we tokenizing
             # remove extra whitespace
             article = re.sub('\\s+', ' ', article)
