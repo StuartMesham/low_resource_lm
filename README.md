@@ -23,6 +23,12 @@ But taking another look at the model structure it seems like the decoder is **ta
 
 ## Usage example:
 Ensure that all scripts are run from the root directory, <b>not /scripts/</b>
+
+install requirements:
+```bash
+pip3 install -r requirements.txt
+```
+
 fetch training data:
 ```bash
 ./scripts/fetch_data.sh
