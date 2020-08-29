@@ -64,6 +64,8 @@ parser.add_argument('--optimizer', type=str, default='sgd',
                     help='optimizer to use (sgd, adam)')
 parser.add_argument('--when', nargs="+", type=int, default=[-1],
                     help='When (which epochs) to divide the learning rate by 10 - accepts multiple')
+parser.add_argument('--vocab_size', default=10000, help='size of vocab ONLY IF using bpe')
+parser.add_argument('--use_bpe', default=True, help='use huggingface byte level bpe tokenizer')
 args = parser.parse_args()
 args.tied = True
 
@@ -104,7 +106,7 @@ if os.path.exists(fn):
     corpus = torch.load(fn)
 else:
     print('Producing dataset...')
-    corpus = data.Corpus(args.data)
+    corpus = data.Corpus(args.data, args.vocab_size, args.use_bpe)
     torch.save(corpus, fn)
 
 eval_batch_size = 10

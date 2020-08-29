@@ -2,6 +2,7 @@ import os
 import torch
 
 from collections import Counter
+from tokenizers import ByteLevelBPETokenizer
 
 
 class Dictionary(object):
@@ -25,11 +26,52 @@ class Dictionary(object):
 
 
 class Corpus(object):
-    def __init__(self, path):
+    def __init__(self, path, vocab_size=-1, use_bpe=False):
         self.dictionary = Dictionary()
-        self.train = self.tokenize(os.path.join(path, 'train.txt'))
-        self.valid = self.tokenize(os.path.join(path, 'valid.txt'))
-        self.test = self.tokenize(os.path.join(path, 'test.txt'))
+
+        if use_bpe:
+            # TODO: refactor this rubbish
+            # TODO: fix the decoding step
+            tokenizer = ByteLevelBPETokenizer()
+            tokenizer.train(
+                [
+                    os.path.join(path, 'train.txt'),
+                    os.path.join(path, 'valid.txt'),
+                    os.path.join(path, 'test.txt')
+                ],
+                vocab_size=vocab_size)
+            with open(os.path.join(path, 'train.txt'), 'r', encoding='utf-8') as f:
+                enc = tokenizer.encode(f.read())
+                tokens = len(enc.ids)
+                ids = torch.LongTensor(tokens)
+
+                for index, id in enumerate(enc.ids):
+                    ids[index] = id
+                self.train = ids
+            with open(os.path.join(path, 'valid.txt'), 'r', encoding='utf-8') as f:
+                enc = tokenizer.encode(f.read())
+                tokens = len(enc.ids)
+                ids = torch.LongTensor(tokens)
+
+                for index, id in enumerate(enc.ids):
+                    ids[index] = id
+                self.valid = ids
+            with open(os.path.join(path, 'test.txt'), 'r', encoding='utf-8') as f:
+                senc = tokenizer.encode(f.read())
+                tokens = len(enc.ids)
+                ids = torch.LongTensor(tokens)
+
+                for index, id in enumerate(enc.ids):
+                    ids[index] = id
+                self.test = ids
+
+            self.dictionary.word2idx = tokenizer.get_vocab()
+            self.dictionary.idx2word = [tokenizer.id_to_token(x) for x in range(tokenizer.get_vocab_size())]
+
+        else:
+            self.train = self.tokenize(os.path.join(path, 'train.txt'))
+            self.valid = self.tokenize(os.path.join(path, 'valid.txt'))
+            self.test = self.tokenize(os.path.join(path, 'test.txt'))
 
     def tokenize(self, path):
         """Tokenizes a text file."""
