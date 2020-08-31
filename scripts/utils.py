@@ -32,6 +32,15 @@ def clean_sentences(sentences, min_length=1, illegal_substrings=[], lines_to_rem
     for substring in illegal_substrings:
         sentences = [sentence for sentence in sentences if substring not in sentence]
 
+    # remove numberings (e.g. "1.4.11.1")
+    sentences = [re.sub(r'(\d+\.+)+\d*', '', sentence) for sentence in sentences]
+
+    # remove numberings (e.g. "(5) (a) (iiv)")
+    sentences = [re.sub(r'\(.|[iv\d]+\)', '', sentence) for sentence in sentences]
+
+    # remove non-alphabet sentence starts and sentences with no alphabet characters
+    sentences = [sentence[re.search(r'[a-zA-Z]', sentence).start():] for sentence in sentences if re.search(r'[a-zA-Z]', sentence) is not None]
+
     # remove extra whitespace
     sentences = [sentence.strip() for sentence in sentences]
 
@@ -40,6 +49,9 @@ def clean_sentences(sentences, min_length=1, illegal_substrings=[], lines_to_rem
 
     # un-caps-lock first words in some sentences
     sentences = [re.sub(r'[A-Z -]+', lambda m: m.group().capitalize(), sentence, count=1) for sentence in sentences]
+
+    # limit to max 3 consecutive dots in a row
+    sentences = [re.sub(r'\.\.\.\.*', '...', sentence) for sentence in sentences]
 
     # remove too frequent or too short sentences
     d = Counter(sentences)

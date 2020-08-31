@@ -80,7 +80,7 @@ for url, file_name, output_name, lines_to_remove in datasets:
 
     sentences = utils.clean_sentences(
         sentences,
-        illegal_substrings=['\ufeff'],
+        illegal_substrings=['\ufeff', '='],
         lines_to_remove=lines_to_remove,
     )
 
