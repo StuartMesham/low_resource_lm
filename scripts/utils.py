@@ -1,3 +1,4 @@
+import re
 import unicodedata
 from collections import Counter
 from statistics import median, stdev
@@ -36,6 +37,9 @@ def clean_sentences(sentences, min_length=1, illegal_substrings=[], lines_to_rem
 
     # remove too short sentences
     sentences = [sentence for sentence in sentences if len(sentence) >= min_length]
+
+    # un-caps-lock first words in some sentences
+    sentences = [re.sub(r'[A-Z -]+', lambda m: m.group().capitalize(), sentence, count=1) for sentence in sentences]
 
     # remove too frequent or too short sentences
     d = Counter(sentences)

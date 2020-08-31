@@ -59,9 +59,6 @@ for url in repo_urls:
             # regex help from https://stackoverflow.com/questions/11502598/how-to-match-something-with-regex-that-is-not-between-two-special-characters
             sentences = re.split('(?<=\.|\!|\?) (?=(?:[^"]*"[^"]*")*[^"]*\Z)', article)
 
-            # un-capitalize first words in articles
-            sentences = [re.sub(r'[A-Z -]+', lambda m: m.group().capitalize(), sentence, count=1) for sentence in sentences]
-
             corpus = corpus + sentences
 
 corpus = utils.clean_sentences(corpus, min_length=16, illegal_substrings=['@', '%2'])
