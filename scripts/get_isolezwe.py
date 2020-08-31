@@ -62,13 +62,11 @@ for url in repo_urls:
             # un-capitalize first words in articles
             sentences = [re.sub(r'[A-Z -]+', lambda m: m.group().capitalize(), sentence, count=1) for sentence in sentences]
 
-            # update total sentence count
-            sentence_count += len(sentences)
             corpus = corpus + sentences
 
 corpus = utils.clean_sentences(corpus, min_length=16, illegal_substrings=['@', '%2'])
 
-print('total sentences:', sentence_count)
+print('total sentences:', len(corpus))
 
 with open(os.path.join(args.output_dir, os.path.basename("isizulu.txt")), 'w', encoding='utf-8') as f:
     f.write('\n'.join(corpus)+'\n')
