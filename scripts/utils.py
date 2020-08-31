@@ -1,5 +1,4 @@
 import unicodedata
-import re
 from collections import Counter
 from statistics import median, stdev
 
@@ -24,17 +23,13 @@ def normalize_quote_characters(str):
     return str
 
 
-def clean_sentences(sentences, min_length=1, illegal_substrings=[], regex_to_delete=[], lines_to_remove=0):
+def clean_sentences(sentences, min_length=1, illegal_substrings=[], lines_to_remove=0):
     # remove first n lines
     sentences = sentences[lines_to_remove:]
 
     # remove sentences with illegal substrings
     for substring in illegal_substrings:
         sentences = [sentence for sentence in sentences if substring not in sentence]
-
-    # remove specific regex patterns from sentences
-    for regex in regex_to_delete:
-        sentences = [re.sub(regex, '', sentence) for sentence in sentences]
 
     # remove extra whitespace
     sentences = [sentence.strip() for sentence in sentences]

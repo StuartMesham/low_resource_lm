@@ -1,5 +1,4 @@
 import argparse
-import os
 
 parser = argparse.ArgumentParser(description="Separates the datasets into test/train/validate sets")
 parser.add_argument('--test_split', default=10, help='Percentage of data to be used for testing')
@@ -15,7 +14,17 @@ assert (args.test_split + args.train_split + args.valid_split == 100), "Dataset 
 
 isolezwe_files = ['isizulu.txt']
 autshumato_files = ['isizulu.txt', 'sepedi.txt']
-nchlt_files = ['isizulu.txt', 'sepedi.txt']
+nchlt_files = [
+    'isizulu.txt',
+    'sepedi.txt',
+    'isixhosa.txt',
+    'xitsonga.txt',
+    'setswana.txt',
+    'siswati.txt',
+    'isindebele.txt',
+    'tshivenda.txt'
+]
+
 datasets = [[args.autshumato_dir, autshumato_files],
             [args.isolezwe_dir, isolezwe_files],
             [args.nchlt_dir, nchlt_files]]
