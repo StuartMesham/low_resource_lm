@@ -1,4 +1,7 @@
 import unicodedata
+import re
+from collections import Counter
+from statistics import median, stdev
 
 # with help from:
 # https://stackoverflow.com/questions/10294032/python-replace-typographical-quotes-dashes-etc-with-their-ascii-counterparts
@@ -19,3 +22,30 @@ def normalize_quote_characters(str):
         str = str.replace(quote_char, '"')
 
     return str
+
+
+def clean_sentences(sentences, min_length=1, illegal_substrings=[], regex_to_delete=[], lines_to_remove=0):
+    # remove first n lines
+    sentences = sentences[lines_to_remove:]
+
+    # remove sentences with illegal substrings
+    for substring in illegal_substrings:
+        sentences = [sentence for sentence in sentences if substring not in sentence]
+
+    # remove specific regex patterns from sentences
+    for regex in regex_to_delete:
+        sentences = [re.sub(regex, '', sentence) for sentence in sentences]
+
+    # remove extra whitespace
+    sentences = [sentence.strip() for sentence in sentences]
+
+    # remove too short sentences
+    sentences = [sentence for sentence in sentences if len(sentence) >= min_length]
+
+    # remove too frequent or too short sentences
+    d = Counter(sentences)
+    l = list(d.values())
+    max_repetitions_allowed = median(l) + stdev(l)
+    sentences = [sentence for sentence in sentences if d[sentence] < max_repetitions_allowed]
+
+    return sentences

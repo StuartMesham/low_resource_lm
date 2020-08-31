@@ -1,10 +1,9 @@
-import re
 import argparse
 import requests
 import zipfile
 import os
-from collections import Counter
 from io import BytesIO
+import utils
 
 # take --output_dir command-line argument
 parser = argparse.ArgumentParser(description='Download NCHLT datasets.')
@@ -31,25 +30,22 @@ for url, file_name, output_name in datasets:
     zip = zipfile.ZipFile(BytesIO(r.content))
     corpus = zip.open(file_name).read().decode('utf-8').strip()
     
-    # remove the first 11 lines (header)
-    corpus = corpus.split('\n', 11)[11]
-    
-    # remove tags containing article filenames
-    corpus = re.sub(r'<fn>.*</fn>', '', corpus)
-    
     # put each sentence on a new line
     corpus = corpus.replace('. ', '.\n')
     
     # remove empty lines from corpus
-    sentences = [s for s in corpus.splitlines() if s.strip()]
+    sentences = corpus.splitlines()
 
-    d = Counter(sentences)
-
-    sentences = [sentence for sentence in corpus if d[sentence] < 30 and '\ufeff' not in sentence]
+    sentences = utils.clean_sentences(
+        sentences,
+        illegal_substrings=['\ufeff'],
+        regex_to_delete=[r'<fn>.*</fn>'],
+        lines_to_remove=11
+    )
 
     # write article to file (with each sentence on a new line)
     output_file_name = os.path.join(args.output_dir, output_name)
     with open(output_file_name, 'w', encoding='utf-8') as f:
-        f.write(corpus)
+        f.write('\n'.join(sentences))
     
     print('total sentences in {}:'.format(output_name), corpus.count('\n'))
