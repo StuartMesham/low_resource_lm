@@ -38,6 +38,9 @@ for url in repo_urls:
             article = re.sub(r'\!(?! )', '! ', article)
             article = re.sub(r'\?(?! )', '? ', article)
 
+            # remove tag that is sometimes repeated
+            article = re.sub(r'&.*;', '', article)
+
             # remove brackets with numbers in them (they seemed to appear often)
             article = re.sub(r'\(\d*\)', '', article)
 
@@ -60,10 +63,9 @@ for url in repo_urls:
             sentence_count += len(sentences)
             corpus = corpus + sentences
 
-corpus = utils.clean_sentences(corpus, min_length=16, illegal_substrings=['@'])
+corpus = utils.clean_sentences(corpus, min_length=16, illegal_substrings=['@', '%2'])
 
 print('total sentences:', sentence_count)
 
-print('merging datasets')
 with open(os.path.join(args.output_dir, os.path.basename("isizulu.txt")), 'w', encoding='utf-8') as f:
     f.write('\n'.join(corpus)+'\n')
