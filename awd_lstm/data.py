@@ -35,9 +35,9 @@ class Corpus(object):
             tokenizer = ByteLevelBPETokenizer()
             tokenizer.train(
                 [
-                    os.path.join(path, 'train.txt'),
-                    os.path.join(path, 'valid.txt'),
-                    os.path.join(path, 'test.txt')
+                    os.path.join(path, 'train.txt')
+                    # os.path.join(path, 'valid.txt'),
+                    # os.path.join(path, 'test.txt')
                 ],
                 vocab_size=vocab_size)
             with open(os.path.join(path, 'train.txt'), 'r', encoding='utf-8') as f:
@@ -57,7 +57,7 @@ class Corpus(object):
                     ids[index] = id
                 self.valid = ids
             with open(os.path.join(path, 'test.txt'), 'r', encoding='utf-8') as f:
-                senc = tokenizer.encode(f.read())
+                enc = tokenizer.encode(f.read())
                 tokens = len(enc.ids)
                 ids = torch.LongTensor(tokens)
 
@@ -67,6 +67,7 @@ class Corpus(object):
 
             self.dictionary.word2idx = tokenizer.get_vocab()
             self.dictionary.idx2word = [tokenizer.id_to_token(x) for x in range(tokenizer.get_vocab_size())]
+            self.dictionary.total = tokenizer.get_vocab_size()
 
         else:
             self.train = self.tokenize(os.path.join(path, 'train.txt'))
