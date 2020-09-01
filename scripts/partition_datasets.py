@@ -34,7 +34,7 @@ datasets = [[args.autshumato_dir, autshumato_files],
 
 for dataset in datasets:
     for file in dataset[1]:
-        with open(dataset[0] + file, 'r', encoding='utf-8') as inf:
+        with open(dataset[0] + file[:-4] + '/' + file, 'r', encoding='utf-8') as inf:
             corpus = inf.read()
 
             with open(dataset[0] + file[:-4] + '/test.txt', 'w', encoding='utf-8') as f:
