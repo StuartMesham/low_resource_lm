@@ -65,5 +65,5 @@ corpus = utils.clean_sentences(corpus, min_length=16, illegal_substrings=['@', '
 
 print('total sentences:', len(corpus))
 
-with open(os.path.join(args.output_dir, os.path.basename("isizulu.txt")), 'w', encoding='utf-8') as f:
+with open(os.path.join(args.output_dir + '/isizulu/', os.path.basename("isizulu.txt")), 'w', encoding='utf-8') as f:
     f.write('\n'.join(corpus)+'\n')

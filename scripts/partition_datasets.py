@@ -20,12 +20,12 @@ autshumato_files = ['isizulu.txt', 'sepedi.txt']
 nchlt_files = [
     'isizulu.txt',
     'sepedi.txt',
-    'isixhosa.txt',
-    'xitsonga.txt',
-    'setswana.txt',
-    'siswati.txt',
-    'isindebele.txt',
-    'tshivenda.txt'
+    # 'isixhosa.txt',
+    # 'xitsonga.txt',
+    # 'setswana.txt',
+    # 'siswati.txt',
+    # 'isindebele.txt',
+    # 'tshivenda.txt'
 ]
 
 datasets = [[args.autshumato_dir, autshumato_files],
@@ -37,12 +37,12 @@ for dataset in datasets:
         with open(dataset[0] + file, 'r', encoding='utf-8') as inf:
             corpus = inf.read()
 
-            with open(dataset[0] + file[:-4] + '_test.txt', 'w', encoding='utf-8') as f:
-                f.write(corpus[:int(len(corpus) * args.test_split/100)])
+            with open(dataset[0] + file[:-4] + '/test.txt', 'w', encoding='utf-8') as f:
+                f.write(corpus[:int(len(corpus) * args.test_split / 100)])
 
-            with open(dataset[0] + file[:-4] + '_train.txt', 'w', encoding='utf-8') as f:
-                f.write(corpus[int(len(corpus) * args.test_split/100):int(len(corpus) * args.train_split/100) + int(
-                    len(corpus) * args.test_split/100)])
+            with open(dataset[0] + file[:-4] + '/train.txt', 'w', encoding='utf-8') as f:
+                f.write(corpus[int(len(corpus) * args.test_split / 100):int(len(corpus) * args.train_split / 100) + int(
+                    len(corpus) * args.test_split / 100)])
 
-            with open(dataset[0] + file[:-4] + '_valid.txt', 'w', encoding='utf-8') as f:
-                f.write(corpus[int(len(corpus) * args.train_split/100) + int(len(corpus) * args.test_split/100):])
+            with open(dataset[0] + file[:-4] + '/valid.txt', 'w', encoding='utf-8') as f:
+                f.write(corpus[int(len(corpus) * args.train_split / 100) + int(len(corpus) * args.test_split / 100):])
