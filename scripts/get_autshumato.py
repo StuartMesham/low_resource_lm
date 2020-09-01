@@ -2,8 +2,8 @@ import argparse
 import requests
 import zipfile
 import os
-from collections import Counter
 from io import BytesIO
+import utils
 
 # take --output_dir command-line argument
 parser = argparse.ArgumentParser(description='Download Autshumato dataset (isiZulu and Sepedi).')
@@ -14,35 +14,28 @@ datasets = [
     (
         'https://master.dl.sourceforge.net/project/autshumato/Corpora/ENG-ZUL.Release.zip',  # url
         'lcontent.DACB.DataVirVrystellingOpWeb.(eng-zul).zul.1.0.0.CAM.2010-09-23.txt',  # file_name
-        'isizulu/isizulu.txt',  # output_name
+        'isizulu.txt',  # output_name
+        2606,  # lines_to_remove (constitution with poor formatting)
     ),
     (
         'https://master.dl.sourceforge.net/project/autshumato/Corpora/ENG-NSO.Release.zip',  # url
         'lcontent.DACB.DataVirVrystellingOpWeb.(eng-nso).nso.1.0.0.CAM.2010-09-23.txt',  # file_name
-        'sepedi/sepedi.txt',  # output_name
+        'sepedi.txt',  # output_name
+        5301,  # lines_to_remove (constitution with poor formatting)
     )
 ]
 
-for url, file_name, output_name in datasets:
+for url, file_name, output_name, lines_to_remove in datasets:
     print('processing:', url)
     r = requests.get(url)
     zip = zipfile.ZipFile(BytesIO(r.content))
     corpus = zip.open(file_name)
     corpus = corpus.read()
     corpus = corpus.decode('utf-8')
-    corpus = corpus.strip()
 
     sentences = corpus.splitlines()
 
-    # remove the first 2607 lines (Transcription of constitution with poor formatting)
-    if output_name == 'isizulu.txt':
-        sentences = sentences[2606:]
-    else:
-        sentences = sentences[5301:] # Could also use something earlier
-
-    d = Counter(sentences)
-
-    sentences = [sentence for sentence in sentences if d[sentence] < 41 and len(sentence) > 2]
+    sentences = utils.clean_sentences(sentences, min_length=3, lines_to_remove=lines_to_remove)
 
     output_file_name = os.path.join(args.output_dir, output_name)
     with open(output_file_name, 'w', encoding='utf-8') as f:
