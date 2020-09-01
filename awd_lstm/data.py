@@ -32,6 +32,8 @@ class Corpus(object):
         if use_bpe:
             # TODO: refactor this rubbish
             # TODO: fix the decoding step
+            assert os.path.exists(path), "Path does not exist: " + path
+
             tokenizer = ByteLevelBPETokenizer()
             tokenizer.train(
                 [
