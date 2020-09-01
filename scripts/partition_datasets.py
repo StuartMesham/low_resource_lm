@@ -31,16 +31,16 @@ for dataset in datasets:
             #
             # # train tokenizer
             # #
-            tokenizer = ByteLevelBPETokenizer()
-            tokenizer.train(
-                inf.name,
-                vocab_size=args.vocab_size,
-                # special_tokens=['<|endoftext|>'],
-                show_progress=True,
-            )
-
+            # tokenizer = ByteLevelBPETokenizer()
+            # tokenizer.train(
+            #     inf.name,
+            #     vocab_size=args.vocab_size,
+            #     # special_tokens=['<|endoftext|>'],
+            #     show_progress=False,
+            # )
             #
-            tokenizer.save_model(dataset[0]+file[:-4])
+            # #
+            # tokenizer.save_model(dataset[0]+file[:-4])
 
             # if args.awd_lstm:
             #     corpus = ' ' + corpus.replace('\n', '\n ')

@@ -245,14 +245,14 @@ best_val_loss = []
 stored_loss = 100000000
 
 
-# Run on test data.
-test_loss = evaluate(test_data, test_batch_size)
-print('=' * 89)
-print('| End of training | test loss {:5.2f} | test ppl {:8.2f} | test bpc {:8.3f}'.format(
-    test_loss, math.exp(test_loss), test_loss / math.log(2)))  # NOTE: Ask Jan about bpc here
-print('=' * 89)  # NOTE: NOT BPC but rather token level cross entropy etc, can I just divide by avg token length
-
-
+# # Run on test data.
+# test_loss = evaluate(test_data, test_batch_size)
+# print('=' * 89)
+# print('| End of training | test loss {:5.2f} | test ppl {:8.2f} | test bpc {:8.3f}'.format(
+#     test_loss, math.exp(test_loss), test_loss / math.log(2)))  # NOTE: Ask Jan about bpc here
+# print('=' * 89)  # NOTE: NOT BPC but rather token level cross entropy etc, can I just divide by avg token length
+#
+#
 
 
 # At any point you can hit Ctrl + C to break out of training early.

@@ -39,7 +39,9 @@ class Corpus(object):
                     # os.path.join(path, 'valid.txt'),
                     # os.path.join(path, 'test.txt')
                 ],
-                vocab_size=vocab_size)
+                vocab_size=vocab_size,
+                show_progress=False
+            )
             with open(os.path.join(path, 'train.txt'), 'r', encoding='utf-8') as f:
                 enc = tokenizer.encode(f.read())
                 tokens = len(enc.ids)
