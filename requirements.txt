@@ -10,4 +10,5 @@ tokenizers==0.8.1rc1
 torch==0.4.1
 torchvision==0.2.2
 tqdm==4.19.9
+tensorboardX==2.1
 urllib3==1.25.9

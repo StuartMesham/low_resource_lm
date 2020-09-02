@@ -71,7 +71,7 @@ parser.add_argument('--vocab_size', default=5000, help='size of vocab ONLY IF us
 parser.add_argument('--use_bpe', default=True, help='use huggingface byte level bpe tokenizer')
 args = parser.parse_args()
 args.tied = True
-writer = SummaryWriter("runs/" + args.model + "_" + str(args.data).replace('/', '-') + "_" + datetime.now().strftime("%d|%H:%M"))
+writer = SummaryWriter("/content/drive/My Drive/Colab Notebooks/runs/" + args.model + "_" + str(args.data).replace('/', '-') + "_" + datetime.now().strftime("%d|%H:%M"))
 
 # Set the random seed manually for reproducibility.
 np.random.seed(args.seed)
