@@ -71,7 +71,7 @@ parser.add_argument('--vocab_size', default=5000, help='size of vocab ONLY IF us
 parser.add_argument('--use_bpe', default=True, help='use huggingface byte level bpe tokenizer')
 args = parser.parse_args()
 args.tied = True
-writer = SummaryWriter("runs/"+args.model+"_"+args.data+"_"+datetime.now().strftime("%d|%H:%M"))
+writer = SummaryWriter("runs/" + args.model + "_" + args.data + "_" + datetime.now().strftime("%d|%H:%M"))
 
 # Set the random seed manually for reproducibility.
 np.random.seed(args.seed)
@@ -125,7 +125,7 @@ test_data = batchify(corpus.test, test_batch_size, args)
 
 from splitcross import SplitCrossEntropyLoss
 
-criterion = None #CHECK: Could change this for the standard pytorch cross entropy loss
+criterion = None  # CHECK: Could change this for the standard pytorch cross entropy loss
 
 ntokens = len(corpus.dictionary)
 model = model.RNNModel(args.model, ntokens, args.emsize, args.nhid, args.nlayers, args.dropout, args.dropouth,
@@ -179,8 +179,9 @@ def evaluate(data_source, batch_size=10):
     total_loss = 0
     ntokens = len(corpus.dictionary)
     hidden = model.init_hidden(batch_size)
-    for i in range(0, data_source.size(0) - 1, args.bptt): # Jump forwards in bptt (70) increments
-        data, targets = get_batch(data_source, i, args, evaluation=True)  # Gets the data and the target data to be produced
+    for i in range(0, data_source.size(0) - 1, args.bptt):  # Jump forwards in bptt (70) increments
+        data, targets = get_batch(data_source, i, args,
+                                  evaluation=True)  # Gets the data and the target data to be produced
         output, hidden = model(data, hidden)
         total_loss += len(data) * criterion(model.decoder.weight, model.decoder.bias, output, targets).data
         hidden = repackage_hidden(hidden)
@@ -188,6 +189,7 @@ def evaluate(data_source, batch_size=10):
 
 
 def train():
+    global writer
     # Turn on training mode which enables dropout.
     if args.model == 'QRNN': model.reset()
     total_loss = 0
@@ -236,6 +238,9 @@ def train():
                   'loss {:5.2f} | ppl {:8.2f} | bpc {:8.3f}'.format(
                 epoch, batch, len(train_data) // args.bptt, optimizer.param_groups[0]['lr'],
                               elapsed * 1000 / args.log_interval, cur_loss, math.exp(cur_loss), cur_loss / math.log(2)))
+            writer.add_scalar('loss', cur_loss, (epoch - 1) * (len(train_data) // args.bptt) + batch)
+            writer.add_scalar('ppl', math.exp(cur_loss), (epoch - 1) * (len(train_data) // args.bptt) + batch)
+            writer.add_scalar('bpc',  cur_loss / math.log(2), (epoch - 1) * (len(train_data) // args.bptt) + batch)
             total_loss = 0
             start_time = time.time()
         ###
@@ -247,7 +252,6 @@ def train():
 lr = args.lr
 best_val_loss = []
 stored_loss = 100000000
-
 
 # # Run on test data.
 # test_loss = evaluate(test_data, test_batch_size)
@@ -282,6 +286,11 @@ try:
                   'valid ppl {:8.2f} | valid bpc {:8.3f}'.format(
                 epoch, (time.time() - epoch_start_time), val_loss2, math.exp(val_loss2), val_loss2 / math.log(2)))
             print('-' * 89)
+            writer.add_scalar('valid_loss', val_loss2, epoch)
+            writer.add_scalar('valid_ppl',  math.exp(val_loss2), epoch)
+            writer.add_scalar('valid_bpc', val_loss2 / math.log(2), epoch)
+
+
 
             if val_loss2 < stored_loss:
                 model_save(args.save)
@@ -298,6 +307,9 @@ try:
                   'valid ppl {:8.2f} | valid bpc {:8.3f}'.format(
                 epoch, (time.time() - epoch_start_time), val_loss, math.exp(val_loss), val_loss / math.log(2)))
             print('-' * 89)
+            writer.add_scalar('valid_loss', val_loss, epoch)
+            writer.add_scalar('valid_ppl', math.exp(val_loss), epoch)
+            writer.add_scalar('valid_bpc', val_loss / math.log(2), epoch)
 
             if val_loss < stored_loss:
                 model_save(args.save)
@@ -329,4 +341,7 @@ test_loss = evaluate(test_data, test_batch_size)
 print('=' * 89)
 print('| End of training | test loss {:5.2f} | test ppl {:8.2f} | test bpc {:8.3f}'.format(
     test_loss, math.exp(test_loss), test_loss / math.log(2)))  # NOTE: Ask Jan about bpc here
+writer.add_scalar('test_loss', test_loss, 0)
+writer.add_scalar('test_ppl', math.exp(test_loss), 0)
+writer.add_scalar('test_bpc', test_loss / math.log(2), 0)
 print('=' * 89)
