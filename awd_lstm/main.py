@@ -5,7 +5,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-from torch.utils.tensorboard import SummaryWriter
+from tensorboardX import SummaryWriter
 from datetime import datetime
 
 import data
@@ -71,7 +71,7 @@ parser.add_argument('--vocab_size', default=5000, help='size of vocab ONLY IF us
 parser.add_argument('--use_bpe', default=True, help='use huggingface byte level bpe tokenizer')
 args = parser.parse_args()
 args.tied = True
-writer = SummaryWriter("runs/" + args.model + "_" + args.data + "_" + datetime.now().strftime("%d|%H:%M"))
+writer = SummaryWriter("runs/" + args.model + "_" + str(args.data).replace('/', '-') + "_" + datetime.now().strftime("%d|%H:%M"))
 
 # Set the random seed manually for reproducibility.
 np.random.seed(args.seed)
@@ -130,6 +130,7 @@ criterion = None  # CHECK: Could change this for the standard pytorch cross entr
 ntokens = len(corpus.dictionary)
 model = model.RNNModel(args.model, ntokens, args.emsize, args.nhid, args.nlayers, args.dropout, args.dropouth,
                        args.dropouti, args.dropoute, args.wdrop, args.tied)
+# writer.add_graph(model, )
 ###
 if args.resume:
     print('Resuming model ...')
