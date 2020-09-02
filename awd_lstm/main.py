@@ -5,6 +5,9 @@ import numpy as np
 import torch
 import torch.nn as nn
 
+from torch.utils.tensorboard import SummaryWriter
+from datetime import datetime
+
 import data
 import model
 
@@ -68,6 +71,7 @@ parser.add_argument('--vocab_size', default=5000, help='size of vocab ONLY IF us
 parser.add_argument('--use_bpe', default=True, help='use huggingface byte level bpe tokenizer')
 args = parser.parse_args()
 args.tied = True
+writer = SummaryWriter("runs/"+args.model+"_"+args.data+"_"+datetime.now().strftime("%d|%H:%M"))
 
 # Set the random seed manually for reproducibility.
 np.random.seed(args.seed)
@@ -267,7 +271,6 @@ try:
         epoch_start_time = time.time()
         train()
         if 't0' in optimizer.param_groups[0]:
-            debug_print("'t0' in optimizer.param_groups[0]", args)
             tmp = {}
             for prm in model.parameters():
                 tmp[prm] = prm.data.clone()
