@@ -267,3 +267,18 @@ def get_gpt2_trainer(hparams: dict, tparams: dict, disable_tqdm=True):
     )
 
     return trainer
+
+
+def run_experiment(hparams: dict, tparams: dict, tb_writer=None, eval_stride=64, disable_tqdm=False):
+    trainer = get_gpt2_trainer(hparams, tparams, disable_tqdm)
+    trainer.train()
+    bpc = evaluate_bpc(
+        trainer.tokenizer,
+        trainer.model,
+        hparams['val_data'],
+        input_block_size=hparams['train_block_size'],
+        stride=eval_stride,
+    )
+    logger.info(f"BPC: {bpc}")
+    if tb_writer is not None:
+        tb_writer.add_hparams(sanitise_hparams_for_tb(hparams), metric_dict={'steps': trainer.global_step, 'bpc': bpc})
