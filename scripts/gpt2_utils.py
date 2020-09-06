@@ -4,6 +4,7 @@ import os
 import logging
 import time
 import pickle
+from math import log
 from typing import List, Tuple
 from filelock import FileLock
 import torch
@@ -152,11 +153,16 @@ def evaluate_bpc(tokenizer, model, eval_data, input_block_size, stride):
                     token_type_ids=torch.full(input_ids.size(), language_id, dtype=torch.int64, device=device) if model.config.type_vocab_size is not None else None,
                     labels=target_ids,
                 )
+                # stride = number of tokens in the batch
+                # outputs[0] = nats/token (https://pytorch.org/docs/stable/generated/torch.nn.CrossEntropyLoss.html)
+                # outputs[0] * stride = nats
                 log_likelihood = outputs[0] * stride
 
             lls.append(log_likelihood)
 
-    return torch.pow(2, torch.stack(lls).sum() / total_characters).item()
+    # total nats / log(2) = total bits
+    # total bits / total characters = bits/character
+    return ((torch.stack(lls).sum() / log(2)) / total_characters).item()
 
 
 def sanitise_hparams_for_tb(hparams):
