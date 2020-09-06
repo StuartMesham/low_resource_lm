@@ -1,5 +1,5 @@
 #!/bin/bash
-export PYTHONPATH=$PYTHONPATH:`pwd`:`pwd`/scripts
+export PYTHONPATH=$PYTHONPATH:`pwd`/scripts
 
 echo 'fetching nchlt data'
 mkdir -p data/nchlt
