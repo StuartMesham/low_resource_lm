@@ -130,6 +130,7 @@ def get_tokenizer(train_data, vocab_size):
 
 
 def evaluate_bpc(tokenizer, model, eval_data, input_block_size, stride):
+    assert stride <= input_block_size
     lls = []
     total_characters = 0
     for language_id, test_set in eval_data:
