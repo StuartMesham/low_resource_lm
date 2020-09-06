@@ -6,3 +6,4 @@ urllib3==1.25.9
 torch
 tqdm
 tensorboard
+-e git://github.com/StuartMesham/transformers.git@trainer_remove_compulsory_saving#egg=transformers
