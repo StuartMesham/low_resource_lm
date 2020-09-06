@@ -129,31 +129,33 @@ def get_tokenizer(train_data, vocab_size):
     return tokenizer
 
 
-# TODO: make this take an array of test_sets and language_ids like the other methods
-def evaluate_bpc(tokenizer, model, test_set, input_block_size, stride, language_id):
-    with open(test_set, 'r') as f:
-        test_set = f.read()
-    encodings = tokenizer(test_set, return_tensors='pt')
-
+def evaluate_bpc(tokenizer, model, eval_data, input_block_size, stride):
     lls = []
-    for i in tqdm(range(1, encodings.input_ids.size(1), stride)):
-        begin_loc = max(i + stride - input_block_size, 0)
-        end_loc = i + stride
-        input_ids = encodings.input_ids[:, begin_loc:end_loc].to(device)
-        target_ids = input_ids.clone()
-        target_ids[:, :-stride] = -100
+    total_characters = 0
+    for language_id, test_set in eval_data:
+        with open(test_set, 'r') as f:
+            test_set = f.read()
+        total_characters += len(test_set)
+        encodings = tokenizer(test_set, return_tensors='pt')
 
-        with torch.no_grad():
-            outputs = model(
-                input_ids,
-                token_type_ids=torch.full(input_ids.size(), language_id, dtype=torch.int64, device=device) if model.config.type_vocab_size is not None else None,
-                labels=target_ids,
-            )
-            log_likelihood = outputs[0] * stride
+        for i in tqdm(range(1, encodings.input_ids.size(1), stride)):
+            begin_loc = max(i + stride - input_block_size, 0)
+            end_loc = i + stride
+            input_ids = encodings.input_ids[:, begin_loc:end_loc].to(device)
+            target_ids = input_ids.clone()
+            target_ids[:, :-stride] = -100
 
-        lls.append(log_likelihood)
+            with torch.no_grad():
+                outputs = model(
+                    input_ids,
+                    token_type_ids=torch.full(input_ids.size(), language_id, dtype=torch.int64, device=device) if model.config.type_vocab_size is not None else None,
+                    labels=target_ids,
+                )
+                log_likelihood = outputs[0] * stride
 
-    return torch.pow(2, torch.stack(lls).sum() / len(test_set)).item()
+            lls.append(log_likelihood)
+
+    return torch.pow(2, torch.stack(lls).sum() / total_characters).item()
 
 
 def sanitise_hparams_for_tb(hparams):
