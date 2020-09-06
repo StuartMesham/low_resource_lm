@@ -19,8 +19,6 @@ CACHE_DIR = 'caches'
 
 logger = logging.getLogger(__name__)
 
-# logger.setLevel(logging.WARNING)
-
 
 class MultilingualTextDataset(Dataset):
     def __init__(
@@ -58,11 +56,11 @@ class MultilingualTextDataset(Dataset):
                     with open(cached_features_file, "rb") as handle:
                         language_examples = pickle.load(handle)
                     logger.info(
-                        f"Loading features from cached file {cached_features_file} [took %.3f s]", time.time() - start
+                        f"Loaded features from {cached_features_file} [took %.3f s]", time.time() - start
                     )
 
                 else:
-                    logger.info(f"Creating features from dataset file {file_path}")
+                    start = time.time()
 
                     with open(file_path, encoding="utf-8") as f:
                         text = f.read()
@@ -76,11 +74,10 @@ class MultilingualTextDataset(Dataset):
                     # If your dataset is small, first you should look for a bigger one :-) and second you
                     # can change this behavior by adding (model specific) padding.
 
-                    start = time.time()
                     with open(cached_features_file, "wb") as handle:
                         pickle.dump(language_examples, handle, protocol=pickle.HIGHEST_PROTOCOL)
                     logger.info(
-                        "Saving features into cached file %s [took %.3f s]", cached_features_file, time.time() - start
+                        f"Created features for {file_path} [took %.3f s]", time.time() - start
                     )
                 if use_token_type_ids:
                     # add language IDs
@@ -104,7 +101,9 @@ def get_tokenizer(train_data, vocab_size):
 
     cached_tokenizer_file = os.path.join(CACHE_DIR, 'tokenizer_{}'.format(cache_id))
 
-    if not os.path.exists(cached_tokenizer_file):
+    train_new_tokenizer = not os.path.exists(cached_tokenizer_file)
+    if train_new_tokenizer:
+        start = time.time()
         os.makedirs(cached_tokenizer_file)
         tokenizer = ByteLevelBPETokenizer()
         tokenizer.train(
@@ -114,9 +113,19 @@ def get_tokenizer(train_data, vocab_size):
             show_progress=False,
         )
         tokenizer.save_model(cached_tokenizer_file)
+        logger.info(
+            f"Trained tokenizer {cached_tokenizer_file} [took %.3f s]", time.time() - start
+        )
 
+    start = time.time()
     tokenizer = GPT2TokenizerFast.from_pretrained(cached_tokenizer_file)
     tokenizer.cache_id = cache_id
+
+    if not train_new_tokenizer:
+        logger.info(
+            f"Loaded tokenizer from {cached_tokenizer_file} [took %.3f s]", time.time() - start
+        )
+
     return tokenizer
 
 
@@ -211,14 +220,14 @@ def get_gpt2_trainer(hparams: dict, tparams: dict, disable_tqdm=True):
         tokenizer=tokenizer,
         dataset_files=hparams['train_data'],
         block_size=hparams['train_block_size'],
-        use_token_type_ids=['use_token_type_ids'],
+        use_token_type_ids=hparams['use_token_type_ids'],
     )
 
     validation_dataset = MultilingualTextDataset(
         tokenizer=tokenizer,
         dataset_files=hparams['val_data'],
         block_size=hparams['train_block_size'],
-        use_token_type_ids=['use_token_type_ids'],
+        use_token_type_ids=hparams['use_token_type_ids'],
     )
 
     if hparams['use_token_type_ids']:
