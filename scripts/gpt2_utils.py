@@ -138,7 +138,7 @@ def evaluate_bpc(tokenizer, model, eval_data, input_block_size, stride):
         total_characters += len(test_set)
         encodings = tokenizer(test_set, return_tensors='pt')
 
-        for i in tqdm(range(1, encodings.input_ids.size(1), stride)):
+        for i in tqdm(range(1, encodings.input_ids.size(1), stride), desc='Evaluating BPC'):
             begin_loc = max(i + stride - input_block_size, 0)
             end_loc = i + stride
             input_ids = encodings.input_ids[:, begin_loc:end_loc].to(device)
