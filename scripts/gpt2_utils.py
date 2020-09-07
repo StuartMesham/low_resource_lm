@@ -130,7 +130,7 @@ def get_tokenizer(train_data, vocab_size):
     return tokenizer
 
 
-def evaluate_bpc(tokenizer, model, eval_data, input_block_size, stride):
+def evaluate_bpc(tokenizer, model, eval_data, input_block_size, stride, disable_tqdm=False):
     assert stride <= input_block_size
     lls = []
     total_characters = 0
@@ -140,7 +140,7 @@ def evaluate_bpc(tokenizer, model, eval_data, input_block_size, stride):
         total_characters += len(test_set)
         encodings = tokenizer(test_set, return_tensors='pt')
 
-        for i in tqdm(range(1, encodings.input_ids.size(1), stride), desc='Evaluating BPC'):
+        for i in tqdm(range(1, encodings.input_ids.size(1), stride), desc='Evaluating BPC', disable=disable_tqdm):
             begin_loc = max(i + stride - input_block_size, 0)
             end_loc = i + stride
             input_ids = encodings.input_ids[:, begin_loc:end_loc].to(device)
@@ -185,7 +185,7 @@ def default_hparams_logdir() -> str:
     return os.path.join("hparam_tests", current_time + "_" + socket.gethostname())
 
 
-def get_gpt2_trainer(hparams: dict, tparams: dict, disable_tqdm=True):
+def get_gpt2_trainer(hparams: dict, tparams: dict, disable_tqdm=False, disable_prediction_tqdm=True, log_to_console=False):
     assert 'tokenizer_train_data' in hparams
     assert 'vocab_size' in hparams
     assert 'train_data' in hparams
@@ -259,7 +259,8 @@ def get_gpt2_trainer(hparams: dict, tparams: dict, disable_tqdm=True):
         eval_steps=tparams['eval_steps'],
         patience=tparams['patience'],
         evaluate_during_training=True,
-        disable_tqdm=disable_tqdm,
+        disable_train_tqdm=disable_tqdm,
+        disable_prediction_tqdm=disable_prediction_tqdm,
     )
 
     trainer = Trainer(
@@ -270,20 +271,23 @@ def get_gpt2_trainer(hparams: dict, tparams: dict, disable_tqdm=True):
         train_dataset=train_dataset,
         eval_dataset=validation_dataset,
         prediction_loss_only=True,
+        log_to_console=log_to_console,
     )
 
     return trainer
 
 
-def run_experiment(hparams: dict, tparams: dict, tb_writer=None, eval_stride=64, disable_tqdm=False):
-    trainer = get_gpt2_trainer(hparams, tparams, disable_tqdm)
+def run_experiment(hparams: dict, tparams: dict, tb_writer=None, eval_stride=64, disable_tqdm=False, disable_prediction_tqdm=True, log_to_console=False):
+    trainer = get_gpt2_trainer(hparams, tparams, disable_tqdm, disable_prediction_tqdm, log_to_console)
     trainer.train()
+    trainer.evaluate()
     bpc = evaluate_bpc(
         trainer.tokenizer,
         trainer.model,
         hparams['val_data'],
         input_block_size=hparams['train_block_size'],
         stride=eval_stride,
+        disable_tqdm=disable_prediction_tqdm,
     )
     logger.info(f"BPC: {bpc}")
     if tb_writer is not None:
