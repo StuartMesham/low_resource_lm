@@ -204,6 +204,7 @@ def get_gpt2_trainer(hparams: dict, tparams: dict, disable_tqdm=False, disable_p
 
     assert 'max_steps' in tparams
     assert 'patience' in tparams
+    assert 'log_steps' in tparams
     assert 'eval_steps' in tparams
 
     tokenizer = get_tokenizer(hparams['tokenizer_train_data'], hparams['vocab_size'])
@@ -257,7 +258,7 @@ def get_gpt2_trainer(hparams: dict, tparams: dict, disable_tqdm=False, disable_p
         max_steps=tparams['max_steps'],
         per_device_train_batch_size=hparams['batch_size'],
         learning_rate=hparams['learning_rate'],
-        logging_steps=100,
+        logging_steps=tparams['log_steps'],
         eval_steps=tparams['eval_steps'],
         patience=tparams['patience'],
         evaluate_during_training=True,
