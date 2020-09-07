@@ -261,6 +261,7 @@ def get_gpt2_trainer(hparams: dict, tparams: dict, disable_tqdm=False, disable_p
         logging_steps=tparams['log_steps'],
         eval_steps=tparams['eval_steps'],
         patience=tparams['patience'],
+        prediction_loss_only=True,
         evaluate_during_training=True,
         disable_train_tqdm=disable_tqdm,
         disable_prediction_tqdm=disable_prediction_tqdm,
@@ -273,7 +274,6 @@ def get_gpt2_trainer(hparams: dict, tparams: dict, disable_tqdm=False, disable_p
         data_collator=data_collator,
         train_dataset=train_dataset,
         eval_dataset=validation_dataset,
-        prediction_loss_only=True,
         log_to_console=log_to_console,
     )
 
