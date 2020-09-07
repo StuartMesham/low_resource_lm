@@ -94,6 +94,8 @@ class MultilingualTextDataset(Dataset):
 
 
 def get_tokenizer(train_data, vocab_size):
+    assert vocab_size >= 257, 'vocab size must cover all possible bytes and one special token'
+
     m = hashlib.md5()
     m.update(str(vocab_size).encode())
     for file in train_data:
