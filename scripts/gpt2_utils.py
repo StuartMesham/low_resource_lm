@@ -84,7 +84,7 @@ class MultilingualTextDataset(Dataset):
                     # add language IDs
                     self.examples += [[tokens, [language_id]*len(tokens)] for tokens in language_examples]
                 else:
-                    self.examples += tokens
+                    self.examples += language_examples
 
     def __len__(self):
         return len(self.examples)
