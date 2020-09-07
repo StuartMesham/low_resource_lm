@@ -265,6 +265,7 @@ def get_gpt2_trainer(hparams: dict, tparams: dict, disable_tqdm=False, disable_p
         evaluate_during_training=True,
         disable_train_tqdm=disable_tqdm,
         disable_prediction_tqdm=disable_prediction_tqdm,
+        hparams=hparams,
     )
 
     trainer = Trainer(
