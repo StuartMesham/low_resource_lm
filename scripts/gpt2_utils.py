@@ -281,7 +281,7 @@ def get_gpt2_trainer(hparams: dict, tparams: dict, disable_tqdm=False, disable_p
     return trainer
 
 
-def run_experiment(hparams: dict, tparams: dict, tb_writer=None, eval_stride=64, disable_tqdm=False, disable_prediction_tqdm=True, log_to_console=False):
+def run_experiment(hparams: dict, tparams: dict, tb_writer=None, eval_stride=64, disable_tqdm=True, disable_prediction_tqdm=True, log_to_console=False):
     trainer = get_gpt2_trainer(hparams, tparams, disable_tqdm, disable_prediction_tqdm, log_to_console)
     trainer.train()
     bpc = evaluate_bpc(
