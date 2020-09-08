@@ -11,6 +11,7 @@ class Dictionary(object):
         self.idx2word = []
         self.counter = Counter()
         self.total = 0
+        self.avg_characters_per_token = {'train': -1, 'valid': -1, 'test': -1}
 
     def add_word(self, word):
         if word not in self.word2idx:
@@ -45,33 +46,42 @@ class Corpus(object):
                 show_progress=False
             )
             with open(os.path.join(path, 'train.txt'), 'r', encoding='utf-8') as f:
-                enc = tokenizer.encode(f.read())
+                text = f.read()
+                enc = tokenizer.encode(text)
                 tokens = len(enc.ids)
                 ids = torch.LongTensor(tokens)
 
                 for index, id in enumerate(enc.ids):
                     ids[index] = id
                 self.train = ids
+                self.dictionary.avg_characters_per_token['train'] = len(text)/len(enc.ids)
+
             with open(os.path.join(path, 'valid.txt'), 'r', encoding='utf-8') as f:
-                enc = tokenizer.encode(f.read())
+                text = f.read()
+                enc = tokenizer.encode(text)
                 tokens = len(enc.ids)
                 ids = torch.LongTensor(tokens)
 
                 for index, id in enumerate(enc.ids):
                     ids[index] = id
                 self.valid = ids
+                self.dictionary.avg_characters_per_token['valid'] = len(text)/len(enc.ids)
+
             with open(os.path.join(path, 'test.txt'), 'r', encoding='utf-8') as f:
-                enc = tokenizer.encode(f.read())
+                text = f.read()
+                enc = tokenizer.encode(text)
                 tokens = len(enc.ids)
                 ids = torch.LongTensor(tokens)
 
                 for index, id in enumerate(enc.ids):
                     ids[index] = id
                 self.test = ids
+                self.dictionary.avg_characters_per_token['test'] = len(text)/len(enc.ids)
 
             self.dictionary.word2idx = tokenizer.get_vocab()
             self.dictionary.idx2word = [tokenizer.id_to_token(x) for x in range(tokenizer.get_vocab_size())]
             self.dictionary.total = tokenizer.get_vocab_size()
+
 
         else:
             self.train = self.tokenize(os.path.join(path, 'train.txt'))

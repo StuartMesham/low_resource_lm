@@ -7,6 +7,7 @@ import torch.nn as nn
 
 from tensorboardX import SummaryWriter
 from datetime import datetime
+import os
 
 import data
 import model
@@ -71,7 +72,11 @@ parser.add_argument('--vocab_size', default=5000, help='size of vocab ONLY IF us
 parser.add_argument('--use_bpe', default=True, help='use huggingface byte level bpe tokenizer')
 args = parser.parse_args()
 args.tied = True
-writer = SummaryWriter("/content/drive/My Drive/Colab Notebooks/runs/" + args.model + "_" + str(args.data).replace('/', '-') + "_" + datetime.now().strftime("%d|%H:%M"))
+run_name = str(args.data).replace('/', '-') + "/" + args.model + "/" + datetime.now().strftime("%d|%H:%M")
+drive_name = "/content/drive/My Drive/Colab Notebooks/runs/"
+if os.path.exists(drive_name):
+    writer = SummaryWriter(drive_name + run_name)
+
 
 # Set the random seed manually for reproducibility.
 np.random.seed(args.seed)
@@ -238,7 +243,7 @@ def train():
             print('| epoch {:3d} | {:5d}/{:5d} batches | lr {:05.5f} | ms/batch {:5.2f} | '
                   'loss {:5.2f} | ppl {:8.2f} | bpc {:8.3f}'.format(
                 epoch, batch, len(train_data) // args.bptt, optimizer.param_groups[0]['lr'],
-                              elapsed * 1000 / args.log_interval, cur_loss, math.exp(cur_loss), cur_loss / math.log(2)))
+                              elapsed * 1000 / args.log_interval, cur_loss, math.exp(cur_loss), cur_loss / math.log(2))) #TODO: WRONG! Need to divide again by characters/token
             writer.add_scalar('loss', cur_loss, (epoch - 1) * (len(train_data) // args.bptt) + batch)
             writer.add_scalar('ppl', math.exp(cur_loss), (epoch - 1) * (len(train_data) // args.bptt) + batch)
             writer.add_scalar('bpc',  cur_loss / math.log(2), (epoch - 1) * (len(train_data) // args.bptt) + batch)
@@ -337,11 +342,16 @@ except KeyboardInterrupt:
 # Load the best saved model.
 model_load(args.save)
 
+print('Loaded best saved model')
+writer.add_hparams(vars(args), {'hparams/val_loss': stored_loss})
+
 # Run on test data.
 test_loss = evaluate(test_data, test_batch_size)
 print('=' * 89)
+
 print('| End of training | test loss {:5.2f} | test ppl {:8.2f} | test bpc {:8.3f}'.format(
-    test_loss, math.exp(test_loss), test_loss / math.log(2)))  # NOTE: Ask Jan about bpc here
+    test_loss, math.exp(test_loss), test_loss / math.log(2)/corpus.dictionary.avg_characters_per_token.get('test')))  # NOTE: Ask Jan about bpc here
+
 writer.add_scalar('test_loss', test_loss, 0)
 writer.add_scalar('test_ppl', math.exp(test_loss), 0)
 writer.add_scalar('test_bpc', test_loss / math.log(2), 0)
