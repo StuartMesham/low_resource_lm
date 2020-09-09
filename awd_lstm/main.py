@@ -70,13 +70,13 @@ parser.add_argument('--when', nargs="+", type=int, default=[-1],
                     help='When (which epochs) to divide the learning rate by 10 - accepts multiple')
 parser.add_argument('--vocab_size', default=5000, help='size of vocab ONLY IF using bpe')
 parser.add_argument('--use_bpe', default=True, help='use huggingface byte level bpe tokenizer')
+parser.add_argument('--early_exit', default=False,
+                    help='Exit early from model training once valid_loss is not changing enough per run')
 args = parser.parse_args()
 args.tied = True
 run_name = str(args.data).replace('/', '-') + "/" + args.model + "/" + datetime.now().strftime("%d|%H:%M")
 drive_name = "/content/drive/My Drive/Colab Notebooks/runs/"
-if os.path.exists(drive_name):
-    writer = SummaryWriter(drive_name + run_name)
-
+writer = SummaryWriter(drive_name + run_name)
 
 # Set the random seed manually for reproducibility.
 np.random.seed(args.seed)
@@ -243,10 +243,12 @@ def train():
             print('| epoch {:3d} | {:5d}/{:5d} batches | lr {:05.5f} | ms/batch {:5.2f} | '
                   'loss {:5.2f} | ppl {:8.2f} | bpc {:8.3f}'.format(
                 epoch, batch, len(train_data) // args.bptt, optimizer.param_groups[0]['lr'],
-                              elapsed * 1000 / args.log_interval, cur_loss, math.exp(cur_loss), cur_loss / math.log(2))) #TODO: WRONG! Need to divide again by characters/token
-            writer.add_scalar('loss', cur_loss, (epoch - 1) * (len(train_data) // args.bptt) + batch)
-            writer.add_scalar('ppl', math.exp(cur_loss), (epoch - 1) * (len(train_data) // args.bptt) + batch)
-            writer.add_scalar('bpc',  cur_loss / math.log(2), (epoch - 1) * (len(train_data) // args.bptt) + batch)
+                              elapsed * 1000 / args.log_interval, cur_loss, math.exp(cur_loss),
+                              cur_loss / math.log(2)))  # TODO: WRONG! Need to divide again by characters/token
+            writer.add_scalar('train/loss', cur_loss, (epoch - 1) * (len(train_data) // args.bptt) + batch)
+            writer.add_scalar('train/ppl', math.exp(cur_loss), (epoch - 1) * (len(train_data) // args.bptt) + batch)
+            writer.add_scalar('train/bpc (token)', cur_loss / math.log(2),
+                              (epoch - 1) * (len(train_data) // args.bptt) + batch)
             total_loss = 0
             start_time = time.time()
         ###
@@ -258,7 +260,8 @@ def train():
 lr = args.lr
 best_val_loss = []
 stored_loss = 100000000
-
+old_loss = 100000000
+new_loss = 100000000
 # # Run on test data.
 # test_loss = evaluate(test_data, test_batch_size)
 # print('=' * 89)
@@ -292,11 +295,9 @@ try:
                   'valid ppl {:8.2f} | valid bpc {:8.3f}'.format(
                 epoch, (time.time() - epoch_start_time), val_loss2, math.exp(val_loss2), val_loss2 / math.log(2)))
             print('-' * 89)
-            writer.add_scalar('valid_loss', val_loss2, epoch)
-            writer.add_scalar('valid_ppl',  math.exp(val_loss2), epoch)
-            writer.add_scalar('valid_bpc', val_loss2 / math.log(2), epoch)
-
-
+            writer.add_scalar('valid/loss', val_loss2, epoch)
+            writer.add_scalar('valid/ppl', math.exp(val_loss2), epoch)
+            writer.add_scalar('valid/bpc (token)', val_loss2 / math.log(2), epoch)
 
             if val_loss2 < stored_loss:
                 model_save(args.save)
@@ -313,9 +314,9 @@ try:
                   'valid ppl {:8.2f} | valid bpc {:8.3f}'.format(
                 epoch, (time.time() - epoch_start_time), val_loss, math.exp(val_loss), val_loss / math.log(2)))
             print('-' * 89)
-            writer.add_scalar('valid_loss', val_loss, epoch)
-            writer.add_scalar('valid_ppl', math.exp(val_loss), epoch)
-            writer.add_scalar('valid_bpc', val_loss / math.log(2), epoch)
+            writer.add_scalar('valid/loss', val_loss, epoch)
+            writer.add_scalar('valid/ppl', math.exp(val_loss), epoch)
+            writer.add_scalar('valid/bpc (token)', val_loss / math.log(2), epoch)
 
             if val_loss < stored_loss:
                 model_save(args.save)
@@ -335,6 +336,9 @@ try:
 
             best_val_loss.append(val_loss)
 
+        # if args.early_exit and :
+
+
 except KeyboardInterrupt:
     print('-' * 89)
     print('Exiting from training early')
@@ -342,17 +346,20 @@ except KeyboardInterrupt:
 # Load the best saved model.
 model_load(args.save)
 
+writer.add_hparams(args.__dict__, {'hparam/val_loss': stored_loss, 'hparam/val_bpc': stored_loss / math.log(
+    2) / corpus.dictionary.avg_characters_per_token.get('valid')})
+
 print('Loaded best saved model')
-writer.add_hparams(vars(args), {'hparams/val_loss': stored_loss})
 
 # Run on test data.
 test_loss = evaluate(test_data, test_batch_size)
 print('=' * 89)
 
 print('| End of training | test loss {:5.2f} | test ppl {:8.2f} | test bpc {:8.3f}'.format(
-    test_loss, math.exp(test_loss), test_loss / math.log(2)/corpus.dictionary.avg_characters_per_token.get('test')))  # NOTE: Ask Jan about bpc here
+    test_loss, math.exp(test_loss),
+    test_loss / math.log(2) / corpus.dictionary.avg_characters_per_token.get('test')))  # NOTE: Ask Jan about bpc here
 
-writer.add_scalar('test_loss', test_loss, 0)
-writer.add_scalar('test_ppl', math.exp(test_loss), 0)
-writer.add_scalar('test_bpc', test_loss / math.log(2), 0)
+writer.add_scalar('test/loss', test_loss, 0)
+writer.add_scalar('test/ppl', math.exp(test_loss), 0)
+writer.add_scalar('test/bpc', test_loss / math.log(2) / corpus.dictionary.avg_characters_per_token.get('test'), 0)
 print('=' * 89)
