@@ -5,7 +5,7 @@ import torch.nn as nn
 
 import numpy as np
 
-
+# https://github.com/salesforce/awd-lstm-lm/issues/69
 class SplitCrossEntropyLoss(nn.Module):
     r'''SplitCrossEntropyLoss calculates an approximate softmax'''
     def __init__(self, hidden_size, splits, verbose=False):
@@ -52,6 +52,7 @@ class SplitCrossEntropyLoss(nn.Module):
 
             # If the target is in one of the splits, the probability is the p(tombstone) * p(word within tombstone)
             else:
+                print("Reached unexpected splitcross code")
                 start, end = self.splits[idx], self.splits[idx + 1]
                 tail_weight = weight[start:end]
                 tail_bias = bias[start:end]
@@ -121,6 +122,7 @@ class SplitCrossEntropyLoss(nn.Module):
 
         # We only add the tombstones if we have more than one split
         if self.nsplits > 1:
+            print("Reached unexpected line in splitcross")
             head_weight = self.tail_vectors if head_weight is None else torch.cat([head_weight, self.tail_vectors])
             head_bias = self.tail_bias if head_bias is None else torch.cat([head_bias, self.tail_bias])
 
@@ -141,9 +143,11 @@ class SplitCrossEntropyLoss(nn.Module):
             # For those targets in the head (idx == 0) we only need to return their loss
             if idx == 0:
                 softmaxed_head_res = softmaxed_all_head_res[running_offset:running_offset + len(split_hiddens[idx])]
-                entropy = -torch.gather(softmaxed_head_res, dim=1, index=split_targets[idx].view(-1, 1))
+                entropy = -torch.gather(softmaxed_head_res, dim=1, index=split_targets[idx].view(-1, 1))  # Entropy = softmaxed prediction for the given word
             # If the target is in one of the splits, the probability is the p(tombstone) * p(word within tombstone)
             else:
+                print("Reached unexpected line in splitcross")
+
                 softmaxed_head_res = softmaxed_all_head_res[running_offset:running_offset + len(split_hiddens[idx])]
 
                 if self.verbose or verbose:
@@ -166,7 +170,7 @@ class SplitCrossEntropyLoss(nn.Module):
             running_offset += len(split_hiddens[idx])
             total_loss = entropy.float().sum() if total_loss is None else total_loss + entropy.float().sum()
 
-        return (total_loss / len(targets)).type_as(weight)
+        return (total_loss / len(targets)).type_as(weight)  # Returns the loss
 
 
 if __name__ == '__main__':

@@ -4,8 +4,7 @@ import requests
 import zipfile
 import os
 from io import BytesIO
-
-from scripts import utils
+import utils
 
 # take --output_dir command-line argument
 parser = argparse.ArgumentParser(description='Download isolezwe dataset (isiZulu).')
@@ -39,6 +38,12 @@ for url in repo_urls:
             article = re.sub(r'\!(?! )', '! ', article)
             article = re.sub(r'\?(?! )', '? ', article)
 
+            # remove tag that is sometimes repeated
+            article = re.sub(r'&.*;', '', article)
+
+            # remove brackets with numbers in them (they seemed to appear often)
+            article = re.sub(r'\(\d*\)', '', article)
+
             # TODO Jan: How are we tokenizing
             # remove extra whitespace
             article = re.sub('\\s+', ' ', article)
@@ -54,27 +59,11 @@ for url in repo_urls:
             # regex help from https://stackoverflow.com/questions/11502598/how-to-match-something-with-regex-that-is-not-between-two-special-characters
             sentences = re.split('(?<=\.|\!|\?) (?=(?:[^"]*"[^"]*")*[^"]*\Z)', article)
 
-            # remove bad sentences
-            sentences = [sentence for sentence in sentences if
-                         len(sentence) != 0 and 'please enable JavaScript' not in sentence and '@' not in sentence]
-
-            # discard articles with no valid sentences
-            if len(sentences) == 0:
-                continue
-
-            # write article to file (with each sentence on a new line)
-            output_file_name = os.path.join(args.output_dir, os.path.basename(name))
-            with open(output_file_name, 'w', encoding='utf-8') as f:
-                f.write('\n'.join(sentences) + '\n')
-
-            # update total sentence count
-            sentence_count += len(sentences)
             corpus = corpus + sentences
 
-print('total sentences:', sentence_count)
+corpus = utils.clean_sentences(corpus, min_length=16, illegal_substrings=['@', '%2'])
 
-print('merging datasets')
+print('total sentences:', len(corpus))
+
 with open(os.path.join(args.output_dir + '/isizulu/', os.path.basename("isizulu.txt")), 'w', encoding='utf-8') as f:
     f.write('\n'.join(corpus)+'\n')
-
-

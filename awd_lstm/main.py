@@ -5,6 +5,10 @@ import numpy as np
 import torch
 import torch.nn as nn
 
+from tensorboardX import SummaryWriter
+from datetime import datetime
+import os
+
 import data
 import model
 
@@ -64,8 +68,20 @@ parser.add_argument('--optimizer', type=str, default='sgd',
                     help='optimizer to use (sgd, adam)')
 parser.add_argument('--when', nargs="+", type=int, default=[-1],
                     help='When (which epochs) to divide the learning rate by 10 - accepts multiple')
+parser.add_argument('--vocab_size', default=5000, help='size of vocab ONLY IF using bpe')
+parser.add_argument('--use_bpe', default=True, help='use huggingface byte level bpe tokenizer')
+parser.add_argument('--early_exit', default=False,
+                    help='Exit early from model training once valid_loss is not changing enough per run')
+parser.add_argument('--descriptive_name', default='', help='Descriptive tag to add to the tensorboard save details.')
 args = parser.parse_args()
 args.tied = True
+run_name = str(args.data).replace('/', '-') + "/" + args.model + "/" + datetime.now().strftime("%d|%H:%M") + "_" + args.descriptive_name
+drive_name = "/content/drive/My Drive/Colab Notebooks/runs/"
+writer = SummaryWriter(drive_name + run_name)
+sargs = ''
+for arg in vars(args):
+    sargs += ("{:<16}: {}  \n".format(str(arg), str(getattr(args, arg))))
+writer.add_text('args', sargs)
 
 # Set the random seed manually for reproducibility.
 np.random.seed(args.seed)
@@ -104,7 +120,7 @@ if os.path.exists(fn):
     corpus = torch.load(fn)
 else:
     print('Producing dataset...')
-    corpus = data.Corpus(args.data)
+    corpus = data.Corpus(args.data, args.vocab_size, args.use_bpe)
     torch.save(corpus, fn)
 
 eval_batch_size = 10
@@ -112,24 +128,25 @@ test_batch_size = 1
 train_data = batchify(corpus.train, args.batch_size, args)
 val_data = batchify(corpus.valid, eval_batch_size, args)
 test_data = batchify(corpus.test, test_batch_size, args)
-
+# CHECK: Why is validation batching not the same as testing/training
 ###############################################################################
 # Build the model
 ###############################################################################
 
 from splitcross import SplitCrossEntropyLoss
 
-criterion = None
+criterion = None  # CHECK: Could change this for the standard pytorch cross entropy loss
 
 ntokens = len(corpus.dictionary)
 model = model.RNNModel(args.model, ntokens, args.emsize, args.nhid, args.nlayers, args.dropout, args.dropouth,
                        args.dropouti, args.dropoute, args.wdrop, args.tied)
+# writer.add_graph(model, )
 ###
 if args.resume:
     print('Resuming model ...')
     model_load(args.resume)
     optimizer.param_groups[0]['lr'] = args.lr
-    model.dropouti, model.dropouth, model.dropout, args.dropoute = args.dropouti, args.dropouth, args.dropout, args.dropoute
+    model.dropouti, model.dropouth, model.dropout, model.dropoute = args.dropouti, args.dropouth, args.dropout, args.dropoute
     if args.wdrop:
         from weight_drop import WeightDrop
 
@@ -168,8 +185,9 @@ def evaluate(data_source, batch_size=10):
     total_loss = 0
     ntokens = len(corpus.dictionary)
     hidden = model.init_hidden(batch_size)
-    for i in range(0, data_source.size(0) - 1, args.bptt):
-        data, targets = get_batch(data_source, i, args, evaluation=True)  # CHECK: Wtf is happening here
+    for i in range(0, data_source.size(0) - 1, args.bptt):  # Jump forwards in bptt (70) increments
+        data, targets = get_batch(data_source, i, args,
+                                  evaluation=True)  # Gets the data and the target data to be produced
         output, hidden = model(data, hidden)
         total_loss += len(data) * criterion(model.decoder.weight, model.decoder.bias, output, targets).data
         hidden = repackage_hidden(hidden)
@@ -177,6 +195,7 @@ def evaluate(data_source, batch_size=10):
 
 
 def train():
+    global writer
     # Turn on training mode which enables dropout.
     if args.model == 'QRNN': model.reset()
     total_loss = 0
@@ -224,7 +243,12 @@ def train():
             print('| epoch {:3d} | {:5d}/{:5d} batches | lr {:05.5f} | ms/batch {:5.2f} | '
                   'loss {:5.2f} | ppl {:8.2f} | bpc {:8.3f}'.format(
                 epoch, batch, len(train_data) // args.bptt, optimizer.param_groups[0]['lr'],
-                              elapsed * 1000 / args.log_interval, cur_loss, math.exp(cur_loss), cur_loss / math.log(2)))
+                              elapsed * 1000 / args.log_interval, cur_loss, math.exp(cur_loss),
+                              cur_loss / math.log(2)))  # TODO: WRONG! Need to divide again by characters/token
+            writer.add_scalar('train/loss', cur_loss, (epoch - 1) * (len(train_data) // args.bptt) + batch)
+            writer.add_scalar('train/ppl', math.exp(cur_loss), (epoch - 1) * (len(train_data) // args.bptt) + batch)
+            writer.add_scalar('train/bpc (token)', cur_loss / math.log(2),
+                              (epoch - 1) * (len(train_data) // args.bptt) + batch)
             total_loss = 0
             start_time = time.time()
         ###
@@ -236,6 +260,17 @@ def train():
 lr = args.lr
 best_val_loss = []
 stored_loss = 100000000
+old_loss = 100000000
+new_loss = 100000000
+# # Run on test data.
+# test_loss = evaluate(test_data, test_batch_size)
+# print('=' * 89)
+# print('| End of training | test loss {:5.2f} | test ppl {:8.2f} | test bpc {:8.3f}'.format(
+#     test_loss, math.exp(test_loss), test_loss / math.log(2)))  # NOTE: Ask Jan about bpc here
+# print('=' * 89)  # NOTE: NOT BPC but rather token level cross entropy etc, can I just divide by avg token length
+#
+#
+
 
 # At any point you can hit Ctrl + C to break out of training early.
 try:
@@ -249,7 +284,6 @@ try:
         epoch_start_time = time.time()
         train()
         if 't0' in optimizer.param_groups[0]:
-            debug_print("'t0' in optimizer.param_groups[0]", args)
             tmp = {}
             for prm in model.parameters():
                 tmp[prm] = prm.data.clone()
@@ -261,6 +295,9 @@ try:
                   'valid ppl {:8.2f} | valid bpc {:8.3f}'.format(
                 epoch, (time.time() - epoch_start_time), val_loss2, math.exp(val_loss2), val_loss2 / math.log(2)))
             print('-' * 89)
+            writer.add_scalar('valid/loss', val_loss2, epoch)
+            writer.add_scalar('valid/ppl', math.exp(val_loss2), epoch)
+            writer.add_scalar('valid/bpc (token)', val_loss2 / math.log(2), epoch)
 
             if val_loss2 < stored_loss:
                 model_save(args.save)
@@ -277,6 +314,9 @@ try:
                   'valid ppl {:8.2f} | valid bpc {:8.3f}'.format(
                 epoch, (time.time() - epoch_start_time), val_loss, math.exp(val_loss), val_loss / math.log(2)))
             print('-' * 89)
+            writer.add_scalar('valid/loss', val_loss, epoch)
+            writer.add_scalar('valid/ppl', math.exp(val_loss), epoch)
+            writer.add_scalar('valid/bpc (token)', val_loss / math.log(2), epoch)
 
             if val_loss < stored_loss:
                 model_save(args.save)
@@ -296,6 +336,9 @@ try:
 
             best_val_loss.append(val_loss)
 
+        # if args.early_exit and :
+
+
 except KeyboardInterrupt:
     print('-' * 89)
     print('Exiting from training early')
@@ -303,9 +346,20 @@ except KeyboardInterrupt:
 # Load the best saved model.
 model_load(args.save)
 
+writer.add_hparams(args.__dict__, {'hparam/val_loss': stored_loss, 'hparam/val_bpc': stored_loss / math.log(
+    2) / corpus.dictionary.avg_characters_per_token.get('valid')})
+
+print('Loaded best saved model')
+
 # Run on test data.
 test_loss = evaluate(test_data, test_batch_size)
 print('=' * 89)
+
 print('| End of training | test loss {:5.2f} | test ppl {:8.2f} | test bpc {:8.3f}'.format(
-    test_loss, math.exp(test_loss), test_loss / math.log(2)))  # NOTE: Ask Jan about bpc here
+    test_loss, math.exp(test_loss),
+    test_loss / math.log(2) / corpus.dictionary.avg_characters_per_token.get('test')))  # NOTE: Ask Jan about bpc here
+
+writer.add_scalar('test/loss', test_loss, 0)
+writer.add_scalar('test/ppl', math.exp(test_loss), 0)
+writer.add_scalar('test/bpc', test_loss / math.log(2) / corpus.dictionary.avg_characters_per_token.get('test'), 0)
 print('=' * 89)
