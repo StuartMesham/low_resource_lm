@@ -252,6 +252,11 @@ def get_gpt2_trainer(hparams: dict, tparams: dict, disable_tqdm=False, disable_p
             mlm=False
         )
 
+    if hparams['batch_size'] == 'auto':
+        x = model.num_parameters()
+        y = 4e6 * pow(x, -0.756)
+        hparams['batch_size'] = 2 ** round(log(y, 2))
+
     training_args = TrainingArguments(
         output_dir='',
         save_steps=0,
