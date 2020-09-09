@@ -11,10 +11,16 @@ import torch
 from torch.utils.data.dataset import Dataset
 from tokenizers import ByteLevelBPETokenizer
 from tqdm.auto import tqdm
-from transformers import GPT2TokenizerFast, GPT2Config, GPT2LMHeadModel, TrainingArguments, Trainer, DataCollatorForLanguageModeling
+from transformers import GPT2TokenizerFast, GPT2Config, GPT2LMHeadModel, TrainingArguments, Trainer, DataCollatorForLanguageModeling, is_torch_tpu_available
 from multilingual_data_collator import MultilingualDataCollatorForLanguageModeling
 
-device = 'cuda' if torch.cuda.is_available() else 'cpu'
+if is_torch_tpu_available():
+    import torch_xla.core.xla_model as xm
+    device = xm.xla_device()
+elif torch.cuda.is_available():
+    device = 'cuda'
+else:
+    device = 'cpu'
 
 CACHE_DIR = 'caches'
 
