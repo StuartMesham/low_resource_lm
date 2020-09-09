@@ -72,11 +72,16 @@ parser.add_argument('--vocab_size', default=5000, help='size of vocab ONLY IF us
 parser.add_argument('--use_bpe', default=True, help='use huggingface byte level bpe tokenizer')
 parser.add_argument('--early_exit', default=False,
                     help='Exit early from model training once valid_loss is not changing enough per run')
+parser.add_argument('--descriptive_name', default='', help='Descriptive tag to add to the tensorboard save details.')
 args = parser.parse_args()
 args.tied = True
-run_name = str(args.data).replace('/', '-') + "/" + args.model + "/" + datetime.now().strftime("%d|%H:%M")
+run_name = str(args.data).replace('/', '-') + "/" + args.model + "/" + datetime.now().strftime("%d|%H:%M") + "_" + args.descriptive_name
 drive_name = "/content/drive/My Drive/Colab Notebooks/runs/"
 writer = SummaryWriter(drive_name + run_name)
+sargs = ''
+for arg in vars(args):
+    sargs += ("{:<16}: {}  \n".format(str(arg), str(getattr(args, arg))))
+writer.add_text('args', sargs)
 
 # Set the random seed manually for reproducibility.
 np.random.seed(args.seed)
