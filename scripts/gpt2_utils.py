@@ -164,13 +164,13 @@ def evaluate_bpc(tokenizer, model, eval_data, input_block_size, stride, disable_
                 # stride = number of tokens in the batch
                 # outputs[0] = nats/token (https://pytorch.org/docs/stable/generated/torch.nn.CrossEntropyLoss.html)
                 # outputs[0] * stride = nats
-                log_likelihood = outputs[0] * stride
+                log_likelihood = outputs[0].item() * stride
 
             lls.append(log_likelihood)
 
     # total nats / log(2) = total bits
     # total bits / total characters = bits/character
-    return ((torch.stack(lls).sum() / log(2)) / total_characters).item()
+    return (sum(lls) / log(2)) / total_characters
 
 
 def sanitise_hparams_for_tb(hparams):
