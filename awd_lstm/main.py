@@ -73,15 +73,19 @@ parser.add_argument('--use_bpe', default=True, help='use huggingface byte level 
 parser.add_argument('--early_exit', default=False,
                     help='Exit early from model training once valid_loss is not changing enough per run')
 parser.add_argument('--descriptive_name', default='', help='Descriptive tag to add to the tensorboard save details.')
+parser.add_argument('--log_hparams_only', default=False,
+                    help='Skip training and jump straight to logging validation score for hparams metrics')
 args = parser.parse_args()
 args.tied = True
-run_name = str(args.data).replace('/', '-') + "/" + args.model + "/" + datetime.now().strftime("%d|%H:%M") + "_" + args.descriptive_name
+run_name = str(args.data).replace('/', '-') + "/" + args.model + "/" + datetime.now().strftime(
+    "%d|%H:%M") + "_" + args.descriptive_name
 drive_name = "/content/drive/My Drive/Colab Notebooks/runs/"
-writer = SummaryWriter(drive_name + run_name)
-sargs = ''
-for arg in vars(args):
-    sargs += ("{:<16}: {}  \n".format(str(arg), str(getattr(args, arg))))
-writer.add_text('args', sargs)
+# writer = SummaryWriter(drive_name + run_name)
+# sargs = ''
+# for arg in vars(args):
+#     sargs += ("{:<16}: {}  \n".format(str(arg), str(getattr(args, arg))))
+# writer.add_text('args', sargs)
+# print(sargs)
 
 # Set the random seed manually for reproducibility.
 np.random.seed(args.seed)
@@ -128,6 +132,7 @@ test_batch_size = 1
 train_data = batchify(corpus.train, args.batch_size, args)
 val_data = batchify(corpus.valid, eval_batch_size, args)
 test_data = batchify(corpus.test, test_batch_size, args)
+print(corpus.dictionary.avg_characters_per_token)
 # CHECK: Why is validation batching not the same as testing/training
 ###############################################################################
 # Build the model
@@ -177,6 +182,7 @@ params = list(model.parameters()) + list(criterion.parameters())
 total_params = sum(x.size()[0] * x.size()[1] if len(x.size()) > 1 else x.size()[0] for x in params if x.size())
 print('Args:', args)
 print('Model total parameters:', total_params)
+writer.add_text('model_structure', "Total Params: " + str(total_params) + "  \n" + str(model))
 
 
 ###############################################################################
@@ -277,85 +283,91 @@ new_loss = 100000000
 #
 
 
-# At any point you can hit Ctrl + C to break out of training early.
-try:
-    optimizer = None
-    # Ensure the optimizer is optimizing params, which includes both the model's weights as well as the criterion's weight (i.e. Adaptive Softmax)
-    if args.optimizer == 'sgd':
-        optimizer = torch.optim.SGD(params, lr=args.lr, weight_decay=args.wdecay)
-    if args.optimizer == 'adam':
-        optimizer = torch.optim.Adam(params, lr=args.lr, weight_decay=args.wdecay)
-    for epoch in range(1, args.epochs + 1):
-        epoch_start_time = time.time()
-        train()
-        if 't0' in optimizer.param_groups[0]:
-            tmp = {}
-            for prm in model.parameters():
-                tmp[prm] = prm.data.clone()
-                prm.data = optimizer.state[prm]['ax'].clone()
+if not args.log_hparams_only:
+    # At any point you can hit Ctrl + C to break out of training early.
+    try:
+        optimizer = None
+        # Ensure the optimizer is optimizing params, which includes both the model's weights as well as the criterion's weight (i.e. Adaptive Softmax)
+        if args.optimizer == 'sgd':
+            optimizer = torch.optim.SGD(params, lr=args.lr, weight_decay=args.wdecay)
+        if args.optimizer == 'adam':
+            optimizer = torch.optim.Adam(params, lr=args.lr, weight_decay=args.wdecay)
+        for epoch in range(1, args.epochs + 1):
+            epoch_start_time = time.time()
+            train()
+            if 't0' in optimizer.param_groups[0]:
+                tmp = {}
+                for prm in model.parameters():
+                    tmp[prm] = prm.data.clone()
+                    prm.data = optimizer.state[prm]['ax'].clone()
 
-            val_loss2 = evaluate(val_data)
-            print('-' * 89)
-            print('| end of epoch {:3d} | time: {:5.2f}s | valid loss {:5.2f} | '
-                  'valid ppl {:8.2f} | valid bpc {:8.3f}'.format(
-                epoch, (time.time() - epoch_start_time), val_loss2, math.exp(val_loss2), val_loss2 / math.log(2)))
-            print('-' * 89)
-            writer.add_scalar('valid/loss', val_loss2, epoch)
-            writer.add_scalar('valid/ppl', math.exp(val_loss2), epoch)
-            writer.add_scalar('valid/bpc (token)', val_loss2 / math.log(2), epoch)
+                val_loss2 = evaluate(val_data)
+                print('-' * 89)
+                print('| end of epoch {:3d} | time: {:5.2f}s | valid loss {:5.2f} | '
+                      'valid ppl {:8.2f} | valid bpc {:8.3f}'.format(
+                    epoch, (time.time() - epoch_start_time), val_loss2, math.exp(val_loss2), val_loss2 / math.log(2)))
+                print('-' * 89)
+                writer.add_scalar('valid/loss', val_loss2, epoch)
+                writer.add_scalar('valid/ppl', math.exp(val_loss2), epoch)
+                writer.add_scalar('valid/bpc (token)', val_loss2 / math.log(2), epoch)
 
-            if val_loss2 < stored_loss:
-                model_save(args.save)
-                print('Saving Averaged!')
-                stored_loss = val_loss2
+                if val_loss2 < stored_loss:
+                    model_save(args.save)
+                    print('Saving Averaged!')
+                    stored_loss = val_loss2
 
-            for prm in model.parameters():
-                prm.data = tmp[prm].clone()
+                for prm in model.parameters():
+                    prm.data = tmp[prm].clone()
 
-        else:
-            val_loss = evaluate(val_data, eval_batch_size)
-            print('-' * 89)
-            print('| end of epoch {:3d} | time: {:5.2f}s | valid loss {:5.2f} | '
-                  'valid ppl {:8.2f} | valid bpc {:8.3f}'.format(
-                epoch, (time.time() - epoch_start_time), val_loss, math.exp(val_loss), val_loss / math.log(2)))
-            print('-' * 89)
-            writer.add_scalar('valid/loss', val_loss, epoch)
-            writer.add_scalar('valid/ppl', math.exp(val_loss), epoch)
-            writer.add_scalar('valid/bpc (token)', val_loss / math.log(2), epoch)
+            else:
+                val_loss = evaluate(val_data, eval_batch_size)
+                print('-' * 89)
+                print('| end of epoch {:3d} | time: {:5.2f}s | valid loss {:5.2f} | '
+                      'valid ppl {:8.2f} | valid bpc {:8.3f}'.format(
+                    epoch, (time.time() - epoch_start_time), val_loss, math.exp(val_loss), val_loss / math.log(2)))
+                print('-' * 89)
+                writer.add_scalar('valid/loss', val_loss, epoch)
+                writer.add_scalar('valid/ppl', math.exp(val_loss), epoch)
+                writer.add_scalar('valid/bpc (token)', val_loss / math.log(2), epoch)
 
-            if val_loss < stored_loss:
-                model_save(args.save)
-                print('Saving model (new best validation)')
-                stored_loss = val_loss
+                if val_loss < stored_loss:
+                    model_save(args.save)
+                    print('Saving model (new best validation)')
+                    stored_loss = val_loss
 
-            if args.optimizer == 'sgd' and 't0' not in optimizer.param_groups[0] and (
-                    len(best_val_loss) > args.nonmono and val_loss > min(best_val_loss[:-args.nonmono])):
-                print('Switching to ASGD')
-                optimizer = torch.optim.ASGD(model.parameters(), lr=args.lr, t0=0, lambd=0., weight_decay=args.wdecay)
+                if args.optimizer == 'sgd' and 't0' not in optimizer.param_groups[0] and (
+                        len(best_val_loss) > args.nonmono and val_loss > min(best_val_loss[:-args.nonmono])):
+                    print('Switching to ASGD')
+                    optimizer = torch.optim.ASGD(model.parameters(), lr=args.lr, t0=0, lambd=0.,
+                                                 weight_decay=args.wdecay)
 
-            if epoch in args.when:
-                print('Saving model before learning rate decreased')
-                model_save('{}.e{}'.format(args.save, epoch))
-                print('Dividing learning rate by 10')
-                optimizer.param_groups[0]['lr'] /= 10.
+                if epoch in args.when:
+                    print('Saving model before learning rate decreased')
+                    model_save('{}.e{}'.format(args.save, epoch))
+                    print('Dividing learning rate by 10')
+                    optimizer.param_groups[0]['lr'] /= 10.
 
-            best_val_loss.append(val_loss)
+                best_val_loss.append(val_loss)
 
-        # if args.early_exit and :
+            # if args.early_exit and :
 
-
-except KeyboardInterrupt:
-    print('-' * 89)
-    print('Exiting from training early')
+    except KeyboardInterrupt:
+        print('-' * 89)
+        print('Exiting from training early')
 
 # Load the best saved model.
 model_load(args.save)
-
-writer.add_hparams(args.__dict__, {'hparam/val_loss': stored_loss, 'hparam/val_bpc': stored_loss / math.log(
-    2) / corpus.dictionary.avg_characters_per_token.get('valid')})
-
 print('Loaded best saved model')
 
+if args.log_hparams_only:
+    stored_loss = evaluate(val_data, eval_batch_size)
+writer.add_hparams(args.__dict__,
+                   {'hparam/val_loss': stored_loss,
+                    'hparam/val_bpc': stored_loss / math.log(2) / corpus.dictionary.avg_characters_per_token.get(
+                        'valid')})
+
+
+print("Evaluating on test data...")
 # Run on test data.
 test_loss = evaluate(test_data, test_batch_size)
 print('=' * 89)
