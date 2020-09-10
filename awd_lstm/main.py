@@ -80,12 +80,12 @@ args.tied = True
 run_name = str(args.data).replace('/', '-') + "/" + args.model + "/" + datetime.now().strftime(
     "%d|%H:%M") + "_" + args.descriptive_name
 drive_name = "/content/drive/My Drive/Colab Notebooks/runs/"
-writer = SummaryWriter(drive_name + run_name)
-sargs = ''
-for arg in vars(args):
-    sargs += ("{:<16}: {}  \n".format(str(arg), str(getattr(args, arg))))
-if not args.log_hparams_only: writer.add_text('args', sargs)
-print(sargs)
+# writer = SummaryWriter(drive_name + run_name)
+# sargs = ''
+# for arg in vars(args):
+#     sargs += ("{:<16}: {}  \n".format(str(arg), str(getattr(args, arg))))
+# writer.add_text('args', sargs)
+# print(sargs)
 
 # Set the random seed manually for reproducibility.
 np.random.seed(args.seed)
@@ -182,7 +182,7 @@ params = list(model.parameters()) + list(criterion.parameters())
 total_params = sum(x.size()[0] * x.size()[1] if len(x.size()) > 1 else x.size()[0] for x in params if x.size())
 print('Args:', args)
 print('Model total parameters:', total_params)
-if not args.log_hparams_only: writer.add_text('model_structure', "Total Params: " + str(total_params) + "  \n" + str(model).replace('\n', '  \n'))
+writer.add_text('model_structure', "Total Params: " + str(total_params) + "  \n" + str(model))
 
 
 ###############################################################################
