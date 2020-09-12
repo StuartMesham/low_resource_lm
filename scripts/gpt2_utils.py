@@ -8,6 +8,8 @@ from math import log
 from typing import List, Tuple
 from filelock import FileLock
 import torch
+from torch.optim import SGD
+from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.utils.data.dataset import Dataset
 from tokenizers import ByteLevelBPETokenizer
 from tqdm.auto import tqdm
@@ -207,6 +209,11 @@ def get_gpt2_trainer(hparams: dict, tparams: dict, disable_tqdm=False, disable_p
     assert 'learning_rate' in hparams
     assert 'batch_size' in hparams
     assert 'use_token_type_ids' in hparams
+    assert 'SGD' in hparams
+
+    if hparams['SGD']:
+        assert 'momentum' in hparams
+        assert 'SGD_patience' in hparams
 
     assert 'max_steps' in tparams
     assert 'patience' in tparams
@@ -279,6 +286,13 @@ def get_gpt2_trainer(hparams: dict, tparams: dict, disable_tqdm=False, disable_p
         hparams=hparams,
     )
 
+    if hparams['SGD']:
+        optimizer = SGD(model.parameters(), lr=hparams['learning_rate'], momentum=hparams['momentum'])
+        scheduler = ReduceLROnPlateau(optimizer, 'min', patience=hparams['SGD_patience'])
+    else:
+        optimizer = None
+        scheduler = None
+
     trainer = Trainer(
         tokenizer=tokenizer,
         model=model,
@@ -287,6 +301,7 @@ def get_gpt2_trainer(hparams: dict, tparams: dict, disable_tqdm=False, disable_p
         train_dataset=train_dataset,
         eval_dataset=validation_dataset,
         log_to_console=log_to_console,
+        optimizers=(optimizer, scheduler),
     )
 
     return trainer
