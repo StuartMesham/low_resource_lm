@@ -35,7 +35,7 @@ class LayerSwitchingGPT2Config(PretrainedConfig):
             Dimensionality of the causal mask (usually same as n_positions).
         n_embd (:obj:`int`, optional, defaults to 768):
             Dimensionality of the embeddings and hidden states.
-        n_intermediate_embd (:obj:`int`, optional, defaults to None):
+        d_intermediate_embd (:obj:`int`, optional, defaults to None):
             Dimensionality of the language specific word embeddings.
             If None, no additional feedforward layer will be added after language embeddings
         n_language_specific_attention_layers (:obj:`int`, optional, defaults to 0):
@@ -84,11 +84,10 @@ class LayerSwitchingGPT2Config(PretrainedConfig):
     def __init__(
         self,
         vocab_size=50257,
-        type_vocab_size=None,
         n_positions=1024,
         n_ctx=1024,
         n_embd=768,
-        n_intermediate_embd=None,
+        d_intermediate_embd=None,
         n_language_specific_attention_layers=0,
         language_specific_input_embeds=False,
         language_specific_prediction_heads=False,
@@ -109,11 +108,10 @@ class LayerSwitchingGPT2Config(PretrainedConfig):
         super().__init__(bos_token_id=bos_token_id, eos_token_id=eos_token_id, **kwargs)
 
         self.vocab_size = vocab_size
-        self.type_vocab_size = type_vocab_size
         self.n_ctx = n_ctx
         self.n_positions = n_positions
         self.n_embd = n_embd
-        self.n_intermediate_embd = n_intermediate_embd
+        self.d_intermediate_embd = d_intermediate_embd
         self.n_language_specific_attention_layers = n_language_specific_attention_layers
         self.language_specific_input_embeds = language_specific_input_embeds
         self.language_specific_prediction_heads = language_specific_prediction_heads
@@ -220,8 +218,8 @@ class LayerSwitchingGPT2Model(GPT2PreTrainedModel):
     def __init__(self, config):
         super().__init__(config)
 
-        if config.n_intermediate_embd is not None:
-            input_embedding_size = config.n_intermediate_embd
+        if config.d_intermediate_embd is not None:
+            input_embedding_size = config.d_intermediate_embd
         else:
             input_embedding_size = config.n_embd
 
@@ -238,15 +236,12 @@ class LayerSwitchingGPT2Model(GPT2PreTrainedModel):
         else:
             self.wte = None
         self.wpe = nn.Embedding(config.n_positions, input_embedding_size)
-        if config.type_vocab_size is not None:
-            self.tte = nn.Embedding(config.type_vocab_size, input_embedding_size)
-        else:
-            self.tte = None
+
         self.drop = nn.Dropout(config.embd_pdrop)
 
-        if config.n_intermediate_embd is not None:
+        if config.d_intermediate_embd is not None:
             self.input_intermediate_feedforward = nn.ModuleList([
-                nn.Linear(config.n_intermediate_embd, config.n_embd, bias=True)
+                nn.Linear(config.d_intermediate_embd, config.n_embd, bias=True)
                 for _ in range(config.n_languages)
             ])
             self.activation_function = get_activation(config.activation_function)
@@ -260,9 +255,9 @@ class LayerSwitchingGPT2Model(GPT2PreTrainedModel):
 
         self.ln_f = nn.LayerNorm(config.n_embd, eps=config.layer_norm_epsilon)
 
-        if config.n_intermediate_embd is not None:
+        if config.d_intermediate_embd is not None:
             self.output_intermediate_feedforward = nn.ModuleList([
-                nn.Linear(config.n_embd, config.n_intermediate_embd, bias=True)
+                nn.Linear(config.n_embd, config.d_intermediate_embd, bias=True)
                 for _ in range(config.n_languages)
             ])
 
@@ -293,7 +288,6 @@ class LayerSwitchingGPT2Model(GPT2PreTrainedModel):
         input_ids=None,
         past_key_values=None,
         attention_mask=None,
-        token_type_ids=None,
         position_ids=None,
         head_mask=None,
         inputs_embeds=None,
@@ -332,18 +326,6 @@ class LayerSwitchingGPT2Model(GPT2PreTrainedModel):
             batch_size = inputs_embeds.shape[0]
         else:
             raise ValueError("You have to specify either input_ids or inputs_embeds")
-
-        if token_type_ids is not None:
-            if self.tte is None:
-                raise ValueError("You cannot specify token_type_ids when the model's type_vocab_size is not set")
-            assert token_type_ids.size() == input_shape, f"token_type_ids and input_ids shapes do not match."
-            token_type_ids = token_type_ids.view(-1, input_shape[-1])
-        else:
-            if self.tte is not None:
-                raise ValueError("You have to specify token_type_ids when the model's type_vocab_size is set")
-
-        if inputs_embeds is None and self.wte is None:
-            raise ValueError("You have to specify inputs_embeds when the model's vocab_size is not set")
 
         if position_ids is not None:
             position_ids = position_ids.view(-1, input_shape[-1])
@@ -400,16 +382,13 @@ class LayerSwitchingGPT2Model(GPT2PreTrainedModel):
             else:
                 inputs_embeds = self.wte[0](input_ids)
         position_embeds = self.wpe(position_ids)
-        if token_type_ids is not None:
-            token_type_embeds = self.tte(token_type_ids)
-        else:
-            token_type_embeds = 0
-        embeds = inputs_embeds + position_embeds + token_type_embeds
+
+        embeds = inputs_embeds + position_embeds
         embeds = self.drop(embeds)
 
         output_shape = input_shape + (embeds.size(-1),)
 
-        if self.config.n_intermediate_embd is not None:
+        if self.config.d_intermediate_embd is not None:
             hidden_states = self.input_intermediate_feedforward[language](embeds)
             hidden_states = self.activation_function(hidden_states)
             hidden_states = self.drop(hidden_states)
@@ -444,7 +423,7 @@ class LayerSwitchingGPT2Model(GPT2PreTrainedModel):
 
         hidden_states = self.ln_f(hidden_states)
 
-        if self.config.n_intermediate_embd is not None:
+        if self.config.d_intermediate_embd is not None:
             hidden_states = self.output_intermediate_feedforward[language](hidden_states)
             hidden_states = self.activation_function(hidden_states)
             hidden_states = self.drop(hidden_states)
@@ -472,12 +451,12 @@ class GPT2LayerSwitchingLMHeadModel(GPT2PreTrainedModel):
         if self.config.language_specific_input_embeds != self.config.language_specific_prediction_heads:
             assert not config.tie_word_embeddings
 
-        assert config.n_languages is not None and config.n_languages > 0, 'type_vocab_size must be positive'
+        assert config.n_languages is not None and config.n_languages > 0, 'n_languages must be positive'
 
         self.transformer = LayerSwitchingGPT2Model(config)
 
-        if config.n_intermediate_embd is not None:
-            model_output_size = config.n_intermediate_embd
+        if config.d_intermediate_embd is not None:
+            model_output_size = config.d_intermediate_embd
         else:
             model_output_size = config.n_embd
 
@@ -508,7 +487,6 @@ class GPT2LayerSwitchingLMHeadModel(GPT2PreTrainedModel):
         input_ids=None,
         past_key_values=None,
         attention_mask=None,
-        # token_type_id=None,
         language=0,
         position_ids=None,
         head_mask=None,
@@ -546,7 +524,6 @@ class GPT2LayerSwitchingLMHeadModel(GPT2PreTrainedModel):
             input_ids,
             past_key_values=past_key_values,
             attention_mask=attention_mask,
-            # token_type_id=token_type_id,
             position_ids=position_ids,
             head_mask=head_mask,
             # inputs_embeds=inputs_embeds,
