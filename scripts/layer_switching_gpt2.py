@@ -223,18 +223,16 @@ class LayerSwitchingGPT2Model(GPT2PreTrainedModel):
         else:
             input_embedding_size = config.n_embd
 
-        if config.vocab_size is not None:
-            if config.language_specific_input_embeds:
-                self.wte = nn.ModuleList([
-                    nn.Embedding(config.vocab_size, input_embedding_size)
-                    for _ in range(config.n_languages)
-                ])
-            else:
-                self.wte = nn.ModuleList([
-                    nn.Embedding(config.vocab_size, input_embedding_size)
-                ])
+        if config.language_specific_input_embeds:
+            self.wte = nn.ModuleList([
+                nn.Embedding(config.vocab_size, input_embedding_size)
+                for _ in range(config.n_languages)
+            ])
         else:
-            self.wte = None
+            self.wte = nn.ModuleList([
+                nn.Embedding(config.vocab_size, input_embedding_size)
+            ])
+
         self.wpe = nn.Embedding(config.n_positions, input_embedding_size)
 
         self.drop = nn.Dropout(config.embd_pdrop)
@@ -516,9 +514,6 @@ class GPT2LayerSwitchingLMHeadModel(GPT2PreTrainedModel):
             past_key_values = kwargs.pop("past")
         assert kwargs == {}, f"Unexpected keyword arguments: {list(kwargs.keys())}."
         return_dict = return_dict if return_dict is not None else self.config.use_return_dict
-
-        input_ids = input_ids.view(-1, input_ids.size()[-1])  # did this because it's done in GPT2 forward method
-        # inputs_embeds = self.wtes[token_type_id](input_ids)
 
         transformer_outputs = self.transformer(
             input_ids,
