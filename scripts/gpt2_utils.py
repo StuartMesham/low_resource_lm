@@ -13,7 +13,8 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.utils.data.dataset import Dataset
 from tokenizers import ByteLevelBPETokenizer
 from tqdm.auto import tqdm
-from transformers import GPT2TokenizerFast, GPT2Config, GPT2LMHeadModel, TrainingArguments, Trainer, DataCollatorForLanguageModeling, is_torch_tpu_available
+from transformers import GPT2TokenizerFast, GPT2Config, GPT2LMHeadModel, TrainingArguments, Trainer, \
+    DataCollatorForLanguageModeling, is_torch_tpu_available, get_linear_schedule_with_warmup, AdamW
 from multilingual_data_collator import MultilingualDataCollatorForLanguageModeling
 
 if is_torch_tpu_available():
@@ -209,11 +210,10 @@ def get_gpt2_trainer(hparams: dict, tparams: dict, disable_tqdm=False, disable_p
     assert 'learning_rate' in hparams
     assert 'batch_size' in hparams
     assert 'use_token_type_ids' in hparams
-    assert 'SGD' in hparams
+    assert 'optimizer' in hparams
 
-    if hparams['SGD']:
+    if hparams['optimizer'] == 'SGD':
         assert 'momentum' in hparams
-        assert 'SGD_patience' in hparams
 
     assert 'max_steps' in tparams
     assert 'patience' in tparams
@@ -286,12 +286,35 @@ def get_gpt2_trainer(hparams: dict, tparams: dict, disable_tqdm=False, disable_p
         hparams=hparams,
     )
 
-    if hparams['SGD']:
-        optimizer = SGD(model.parameters(), lr=hparams['learning_rate'], momentum=hparams['momentum'])
-        scheduler = ReduceLROnPlateau(optimizer, 'min', patience=hparams['SGD_patience'])
+    no_decay = ["bias", "LayerNorm.weight"]
+    optimizer_grouped_parameters = [
+        {
+            "params": [p for n, p in model.named_parameters() if not any(nd in n for nd in no_decay)],
+            "weight_decay": hparams['weight_decay'],
+        },
+        {
+            "params": [p for n, p in model.named_parameters() if any(nd in n for nd in no_decay)],
+            "weight_decay": 0.0,
+        },
+    ]
+
+    if hparams['optimizer'] == 'adam':
+        optimizer = AdamW(
+            optimizer_grouped_parameters,
+            lr=hparams['learning_rate'],
+            betas=(0.9, 0.999),
+            eps=1e-8,
+        )
+    elif hparams['optimizer'] == 'SGD':
+        assert 'momentum' in hparams
+        optimizer = SGD(optimizer_grouped_parameters, lr=hparams['learning_rate'], momentum=hparams['momentum'])
     else:
-        optimizer = None
-        scheduler = None
+        raise ValueError(f'optimizer not recognised: {repr(hparams["optimizer"])}')
+
+    if hparams['scheduler'] == 'reduce_on_plateau':
+        scheduler = ReduceLROnPlateau(optimizer, 'min', patience=hparams['scheduler_patience'])
+    elif hparams['scheduler'] == 'linear_with_warmup':
+        scheduler = None  # configured automatically by Trainer class
 
     trainer = Trainer(
         tokenizer=tokenizer,
