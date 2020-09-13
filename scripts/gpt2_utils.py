@@ -377,35 +377,35 @@ def get_gpt2_trainer(hparams: dict, tparams: dict, disable_tqdm=False, disable_p
         is_dataset_pre_batched=True,
     )
 
-    no_decay = ["bias", "LayerNorm.weight"]
-    optimizer_grouped_parameters = [
-        {
-            "params": [p for n, p in model.named_parameters() if not any(nd in n for nd in no_decay)],
-            "weight_decay": hparams['weight_decay'],
-        },
-        {
-            "params": [p for n, p in model.named_parameters() if any(nd in n for nd in no_decay)],
-            "weight_decay": 0.0,
-        },
-    ]
-
-    if hparams['optimizer'] == 'adam':
-        optimizer = AdamW(
-            optimizer_grouped_parameters,
-            lr=hparams['learning_rate'],
-            betas=(0.9, 0.999),
-            eps=1e-8,
-        )
-    elif hparams['optimizer'] == 'SGD':
-        assert 'momentum' in hparams
-        optimizer = SGD(optimizer_grouped_parameters, lr=hparams['learning_rate'], momentum=hparams['momentum'])
-    else:
-        raise ValueError(f'optimizer not recognised: {repr(hparams["optimizer"])}')
-
-    if hparams['scheduler'] == 'reduce_on_plateau':
-        scheduler = ReduceLROnPlateau(optimizer, 'min', patience=hparams['scheduler_patience'])
-    elif hparams['scheduler'] == 'linear_with_warmup':
-        scheduler = None  # configured automatically by Trainer class
+    # no_decay = ["bias", "LayerNorm.weight"]
+    # optimizer_grouped_parameters = [
+    #     {
+    #         "params": [p for n, p in model.named_parameters() if not any(nd in n for nd in no_decay)],
+    #         "weight_decay": hparams['weight_decay'],
+    #     },
+    #     {
+    #         "params": [p for n, p in model.named_parameters() if any(nd in n for nd in no_decay)],
+    #         "weight_decay": 0.0,
+    #     },
+    # ]
+    #
+    # if hparams['optimizer'] == 'adam':
+    #     optimizer = AdamW(
+    #         optimizer_grouped_parameters,
+    #         lr=hparams['learning_rate'],
+    #         betas=(0.9, 0.999),
+    #         eps=1e-8,
+    #     )
+    # elif hparams['optimizer'] == 'SGD':
+    #     assert 'momentum' in hparams
+    #     optimizer = SGD(optimizer_grouped_parameters, lr=hparams['learning_rate'], momentum=hparams['momentum'])
+    # else:
+    #     raise ValueError(f'optimizer not recognised: {repr(hparams["optimizer"])}')
+    #
+    # if hparams['scheduler'] == 'reduce_on_plateau':
+    #     scheduler = ReduceLROnPlateau(optimizer, 'min', patience=hparams['scheduler_patience'])
+    # elif hparams['scheduler'] == 'linear_with_warmup':
+    #     scheduler = None  # configured automatically by Trainer class
 
     trainer = Trainer(
         tokenizers=tokenizers,
@@ -415,7 +415,7 @@ def get_gpt2_trainer(hparams: dict, tparams: dict, disable_tqdm=False, disable_p
         train_dataset=train_dataset,
         eval_dataset=validation_dataset,
         log_to_console=log_to_console,
-        optimizers=(optimizer, scheduler),
+        # optimizers=(optimizer, scheduler),
     )
 
     return trainer
