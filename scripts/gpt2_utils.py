@@ -16,7 +16,8 @@ from torch.optim import SGD
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.utils.data.dataset import Dataset
 from tqdm.auto import tqdm
-from transformers import GPT2TokenizerFast, TrainingArguments, Trainer, is_torch_tpu_available, AdamW
+from transformers import GPT2TokenizerFast, TrainingArguments, Trainer, is_torch_tpu_available, AdamW, GPT2Model, \
+    GPT2LMHeadModel
 
 from layer_switching_gpt2 import LayerSwitchingGPT2Config, GPT2LayerSwitchingLMHeadModel
 
@@ -145,7 +146,7 @@ class MultilingualCachedTextDataset(Dataset):
         batch = self.datasets[dataset_index][first_example_index:first_example_index + self.batch_size]
 
         return {
-            'language': self.language_ids[dataset_index],
+            # 'language': self.language_ids[dataset_index],
             'input_ids': batch
         }
 
@@ -310,7 +311,7 @@ def get_gpt2_trainer(hparams: dict, tparams: dict, disable_tqdm=False, disable_p
         tie_word_embeddings=hparams['tie_word_embeddings'],
     )
 
-    model = GPT2LayerSwitchingLMHeadModel(config=config)
+    model = GPT2LMHeadModel(config=config)
 
     if 'tokenizer_language_datasets' in hparams and 'tokenizer_dataset' in hparams:
         raise ValueError('You cannot specify both tokenizer_language_datasets and tokenizer_dataset.')
