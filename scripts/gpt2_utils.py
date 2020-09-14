@@ -366,6 +366,7 @@ def get_gpt2_trainer(hparams: dict, tparams: dict, disable_tqdm=False, disable_p
         max_steps=tparams['max_steps'],
         per_device_train_batch_size=1,
         learning_rate=hparams['learning_rate'],
+        weight_decay=hparams['weight_decay'],
         logging_steps=tparams['log_steps'],
         eval_steps=tparams['eval_steps'],
         patience=tparams['patience'],
