@@ -313,6 +313,8 @@ def get_gpt2_trainer(hparams: dict, tparams: dict, disable_tqdm=False, disable_p
 
     model = GPT2LayerSwitchingLMHeadModel(config=config)
 
+    hparams['total_trainable_parameters'] = model.num_parameters(only_trainable=True)
+
     if 'tokenizer_language_datasets' in hparams and 'tokenizer_dataset' in hparams:
         raise ValueError('You cannot specify both tokenizer_language_datasets and tokenizer_dataset.')
     elif 'tokenizer_language_datasets' in hparams:
