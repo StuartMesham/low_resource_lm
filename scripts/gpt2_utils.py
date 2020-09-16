@@ -280,6 +280,7 @@ def get_gpt2_trainer(hparams: dict, tparams: dict, disable_tqdm=False, disable_p
     assert 'language_specific_prediction_heads' in hparams
     assert 'tie_word_embeddings' in hparams
 
+    assert hparams['optimizer'] == 'adam', 'Only the adam optimizer is currently supported'
     if hparams['optimizer'] == 'SGD':
         assert 'momentum' in hparams
 
