@@ -134,13 +134,13 @@ class MultilingualCachedTextDataset(Dataset):
 
     def __getitem__(self, i):
         dataset_index = 0
-        while self._cumulative_lengths[dataset_index] < i:
+        while self._cumulative_lengths[dataset_index] <= i:
             dataset_index += 1
 
         if dataset_index == 0:
-            first_example_index = i
+            first_example_index = i * self.batch_size
         else:
-            first_example_index = i - self._cumulative_lengths[dataset_index-1]
+            first_example_index = (i - self._cumulative_lengths[dataset_index-1]) * self.batch_size
 
         batch = self.datasets[dataset_index][first_example_index:first_example_index + self.batch_size]
 
