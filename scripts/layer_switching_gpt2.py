@@ -225,7 +225,7 @@ class LayerSwitchingGPT2Model(GPT2PreTrainedModel):
         if config.d_intermediate_embd is not None:
             input_embedding_size = config.d_intermediate_embd
         else:
-            assert config.tie_intermediate_embd_weights is None
+            assert not config.tie_intermediate_embd_weights
             input_embedding_size = config.n_embd
 
         if config.language_specific_input_embeds:
