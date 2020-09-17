@@ -39,6 +39,7 @@ class CachedTextDataset(Dataset):
             tokenizer: GPT2TokenizerFast,
             dataset_files: [str],
             block_size: int,
+            stride: int,
             shuffle: bool = False,
     ):
 
@@ -52,6 +53,7 @@ class CachedTextDataset(Dataset):
             m = hashlib.md5()
             m.update(tokenizer.cache_id.encode())
             m.update(str(block_size).encode())
+            m.update(str(stride).encode())
             m.update(dataset_file.encode())
             cache_id = m.hexdigest()
 
@@ -82,7 +84,7 @@ class CachedTextDataset(Dataset):
 
                     dataset_examples = []
 
-                    for i in range(0, len(tokenized_text) - block_size + 1, block_size):  # Truncate in block of block_size
+                    for i in range(0, len(tokenized_text) - block_size + 1, stride):  # Truncate in block of block_size
                         tokens = tokenizer.build_inputs_with_special_tokens(tokenized_text[i : i + block_size])
                         dataset_examples.append(tokens)
                     # Note that we are losing the last truncated example here for the sake of simplicity (no padding)
@@ -112,11 +114,12 @@ class MultilingualCachedTextDataset(Dataset):
             self,
             datasets_info: List[Tuple[int, GPT2TokenizerFast, List[str]]],
             block_size: int,
+            stride: int,
             batch_size: int,
             shuffle: bool = False,
     ):
         self.datasets = [
-            CachedTextDataset(tokenizer, dataset_files, block_size, shuffle=shuffle)
+            CachedTextDataset(tokenizer, dataset_files, block_size, stride, shuffle=shuffle)
             for _, tokenizer, dataset_files in datasets_info
         ]
 
@@ -270,6 +273,9 @@ def get_gpt2_trainer(hparams: dict, tparams: dict, disable_tqdm=False, disable_p
     assert 'n_layers' in hparams
     assert 'n_heads' in hparams
     assert 'train_block_size' in hparams
+    assert 'train_stride' in hparams
+    assert 'val_block_size' in hparams
+    assert 'val_stride' in hparams
     assert 'learning_rate' in hparams
     assert 'batch_size' in hparams
     assert 'optimizer' in hparams
@@ -340,6 +346,7 @@ def get_gpt2_trainer(hparams: dict, tparams: dict, disable_tqdm=False, disable_p
             for language_id, dataset_files in hparams['train_data']
         ],
         block_size=hparams['train_block_size'],
+        stride=hparams['train_stride'],
         batch_size=hparams['batch_size'],
         shuffle=True
     )
@@ -349,7 +356,8 @@ def get_gpt2_trainer(hparams: dict, tparams: dict, disable_tqdm=False, disable_p
             (language_id, tokenizers[language_id], dataset_files)
             for language_id, dataset_files in hparams['val_data']
         ],
-        block_size=hparams['train_block_size'],
+        block_size=hparams['val_block_size'],
+        stride=hparams['val_stride'],
         batch_size=hparams['batch_size'],
         shuffle=False,
     )
