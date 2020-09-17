@@ -295,6 +295,7 @@ def get_gpt2_trainer(hparams: dict, tparams: dict, disable_tqdm=False, disable_p
     assert 'patience' in tparams
     assert 'log_steps' in tparams
     assert 'eval_steps' in tparams
+    assert 'save_steps' in tparams
 
     config = LayerSwitchingGPT2Config(
         vocab_size=hparams['vocab_size'],
@@ -368,9 +369,11 @@ def get_gpt2_trainer(hparams: dict, tparams: dict, disable_tqdm=False, disable_p
         list(tokenizers.values())[0].pad_token_id
     )
 
+    model_id = hashlib.md5(repr(hparams).encode()).hexdigest()
+
     training_args = TrainingArguments(
-        output_dir='',
-        save_steps=0,
+        output_dir=os.path.join(CACHE_DIR, f'model_{model_id}'),
+        save_steps=tparams['save_steps'],
         max_steps=tparams['max_steps'],
         per_device_train_batch_size=1,
         learning_rate=hparams['learning_rate'],
