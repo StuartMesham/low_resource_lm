@@ -38,6 +38,8 @@ class LayerSwitchingGPT2Config(PretrainedConfig):
         d_intermediate_embd (:obj:`int`, optional, defaults to None):
             Dimensionality of the language specific word embeddings.
             If None, no additional feedforward layer will be added after language embeddings
+        tie_intermediate_embd_weights (:obj:`bool`, optional, defaults to False):
+            Whether or not to tie the weights for the language specific feedforward layers.
         n_language_specific_attention_layers (:obj:`int`, optional, defaults to 0):
             Number of attention layers (from the bottom up) to be language specific
         language_specific_input_embeds (:obj:`bool`, optional, defaults to False):
@@ -88,6 +90,7 @@ class LayerSwitchingGPT2Config(PretrainedConfig):
         n_ctx=1024,
         n_embd=768,
         d_intermediate_embd=None,
+        tie_intermediate_embd_weights=False,
         n_language_specific_attention_layers=0,
         language_specific_input_embeds=False,
         language_specific_prediction_heads=False,
@@ -112,6 +115,7 @@ class LayerSwitchingGPT2Config(PretrainedConfig):
         self.n_positions = n_positions
         self.n_embd = n_embd
         self.d_intermediate_embd = d_intermediate_embd
+        self.tie_intermediate_embd_weights = tie_intermediate_embd_weights
         self.n_language_specific_attention_layers = n_language_specific_attention_layers
         self.language_specific_input_embeds = language_specific_input_embeds
         self.language_specific_prediction_heads = language_specific_prediction_heads
@@ -221,6 +225,7 @@ class LayerSwitchingGPT2Model(GPT2PreTrainedModel):
         if config.d_intermediate_embd is not None:
             input_embedding_size = config.d_intermediate_embd
         else:
+            assert config.tie_intermediate_embd_weights is None
             input_embedding_size = config.n_embd
 
         if config.language_specific_input_embeds:
@@ -260,6 +265,14 @@ class LayerSwitchingGPT2Model(GPT2PreTrainedModel):
             ])
 
         self.init_weights()
+
+    def tie_weights(self):
+        if self.config.tie_intermediate_embd_weights:
+            assert len(self.input_intermediate_feedforward) == len(self.output_intermediate_feedforward)
+
+            for input_intermediate_ff, output_intermediate_ff in zip(self.input_intermediate_feedforward, self.output_intermediate_feedforward):
+                output_intermediate_ff.weight = nn.Parameter(input_intermediate_ff.weight.transpose(0, 1))
+
 
     def get_input_embeddings(self):
         return self.wte
