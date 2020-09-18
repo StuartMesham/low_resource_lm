@@ -279,11 +279,13 @@ def get_gpt2_trainer(hparams: dict, tparams: dict, disable_tqdm=False, disable_p
     assert 'learning_rate' in hparams
     assert 'batch_size' in hparams
     assert 'optimizer' in hparams
-    assert 'd_intermediate_embd' in hparams
     assert 'n_language_specific_attention_layers' in hparams
     assert 'n_languages' in hparams
     assert 'language_specific_input_embeds' in hparams
     assert 'language_specific_prediction_heads' in hparams
+    assert 'latent_semantic_embeds' in hparams
+    assert 'semantic_concepts' in hparams
+    assert 'language_specific_transformation' in hparams
     assert 'tie_word_embeddings' in hparams
     assert 'tie_intermediate_embd_weights' in hparams
 
@@ -304,11 +306,12 @@ def get_gpt2_trainer(hparams: dict, tparams: dict, disable_tqdm=False, disable_p
         n_embd=hparams['d_model'],
         n_layer=hparams['n_layers'],
         n_head=hparams['n_heads'],
-        d_intermediate_embd=hparams['d_intermediate_embd'],
         n_language_specific_attention_layers=hparams['n_language_specific_attention_layers'],
         n_languages=hparams['n_languages'],
         language_specific_input_embeds=hparams['language_specific_input_embeds'],
         language_specific_prediction_heads=hparams['language_specific_prediction_heads'],
+        semantic_concepts=hparams['semantic_concepts'],
+        language_specific_transformation=hparams['language_specific_transformation'],
         attn_pdrop=hparams['pdrop'],
         embd_pdrop=hparams['pdrop'],
         resid_pdrop=hparams['pdrop'],

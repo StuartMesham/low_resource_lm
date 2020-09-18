@@ -2,9 +2,9 @@ import warnings
 
 import torch
 from torch import nn
-from torch.nn import CrossEntropyLoss
-from transformers import PretrainedConfig
-from transformers.activations import get_activation
+from torch.nn import CrossEntropyLoss, init
+from torch.nn.parameter import Parameter
+from transformers import PretrainedConfig, Conv1D
 from transformers.modeling_gpt2 import Attention, MLP, GPT2PreTrainedModel
 from transformers.modeling_outputs import BaseModelOutputWithPast, CausalLMOutputWithPast
 
@@ -35,9 +35,6 @@ class LayerSwitchingGPT2Config(PretrainedConfig):
             Dimensionality of the causal mask (usually same as n_positions).
         n_embd (:obj:`int`, optional, defaults to 768):
             Dimensionality of the embeddings and hidden states.
-        d_intermediate_embd (:obj:`int`, optional, defaults to None):
-            Dimensionality of the language specific word embeddings.
-            If None, no additional feedforward layer will be added after language embeddings
         tie_intermediate_embd_weights (:obj:`bool`, optional, defaults to False):
             Whether or not to tie the weights for the language specific feedforward layers.
         n_language_specific_attention_layers (:obj:`int`, optional, defaults to 0):
@@ -46,6 +43,11 @@ class LayerSwitchingGPT2Config(PretrainedConfig):
             Whether or not to use separate input embeddings for each language
         language_specific_prediction_heads (:obj:`bool`, optional, defaults to False):
             Whether or not to use separate prediction heads for each language
+        semantic_concepts (:obj:`int`, optional, defaults to None):
+            Number of semantic concepts.
+            If None, then universal latent semantic embeddings will not be used.
+        language_specific_transformation (:obj:`bool`, optional, defaults to False):
+            Whether or not to use language specific transformations
         n_languages (:obj:`int`, optional, defaults to 1):
             Number of languages for language specific layers
         n_layer (:obj:`int`, optional, defaults to 12):
@@ -89,11 +91,12 @@ class LayerSwitchingGPT2Config(PretrainedConfig):
         n_positions=1024,
         n_ctx=1024,
         n_embd=768,
-        d_intermediate_embd=None,
         tie_intermediate_embd_weights=False,
         n_language_specific_attention_layers=0,
         language_specific_input_embeds=False,
         language_specific_prediction_heads=False,
+        language_specific_transformation=False,
+        semantic_concepts=None,
         n_languages=1,
         n_layer=12,
         n_head=12,
@@ -114,11 +117,12 @@ class LayerSwitchingGPT2Config(PretrainedConfig):
         self.n_ctx = n_ctx
         self.n_positions = n_positions
         self.n_embd = n_embd
-        self.d_intermediate_embd = d_intermediate_embd
         self.tie_intermediate_embd_weights = tie_intermediate_embd_weights
         self.n_language_specific_attention_layers = n_language_specific_attention_layers
         self.language_specific_input_embeds = language_specific_input_embeds
         self.language_specific_prediction_heads = language_specific_prediction_heads
+        self.language_specific_transformation = language_specific_transformation
+        self.semantic_concepts = semantic_concepts
         self.n_languages = n_languages
         self.n_layer = n_layer
         self.n_head = n_head
@@ -218,36 +222,49 @@ class Block(nn.Module):
         return outputs  # hidden_states, present, (cross_attentions, attentions)
 
 
+class SemanticEmbedding(nn.Module):
+    def __init__(self, num_embeddings: int, embedding_dim: int,):
+        super().__init__()
+
+        self.weight = Parameter(torch.Tensor(num_embeddings, embedding_dim))
+        init.normal_(self.weight)
+
+    def forward(
+            self,
+            input_embeddings,
+    ):
+        assert input_embeddings.size()[-1] == self.weight.size()[1]
+        temp = torch.matmul(input_embeddings, self.weight.t())
+        temp = torch.softmax(temp, dim=2)
+        return torch.matmul(temp, self.weight)
+
+
 class LayerSwitchingGPT2Model(GPT2PreTrainedModel):
     def __init__(self, config):
         super().__init__(config)
 
-        if config.d_intermediate_embd is not None:
-            input_embedding_size = config.d_intermediate_embd
-        else:
-            assert not config.tie_intermediate_embd_weights
-            input_embedding_size = config.n_embd
+        if config.semantic_concepts is not None:
+            self.lse = SemanticEmbedding(config.semantic_concepts, config.n_embd)
 
         if config.language_specific_input_embeds:
             self.wte = nn.ModuleList([
-                nn.Embedding(config.vocab_size, input_embedding_size)
+                nn.Embedding(config.vocab_size, config.n_embd)
                 for _ in range(config.n_languages)
             ])
         else:
             self.wte = nn.ModuleList([
-                nn.Embedding(config.vocab_size, input_embedding_size)
+                nn.Embedding(config.vocab_size, config.n_embd)
             ])
 
-        self.wpe = nn.Embedding(config.n_positions, input_embedding_size)
-
-        self.drop = nn.Dropout(config.embd_pdrop)
-
-        if config.d_intermediate_embd is not None:
-            self.input_intermediate_feedforward = nn.ModuleList([
-                nn.Linear(config.d_intermediate_embd, config.n_embd, bias=True)
+        if self.config.language_specific_transformation:
+            self.language_specific_transformations = nn.ModuleList([
+                nn.Linear(self.config.n_embd, self.config.n_embd, bias=False)
                 for _ in range(config.n_languages)
             ])
-            self.activation_function = get_activation(config.activation_function)
+
+        self.wpe = nn.Embedding(config.n_positions, config.n_embd)
+
+        self.drop = nn.Dropout(config.embd_pdrop)
 
         self.h = nn.ModuleList()
         for i in range(config.n_layer):
@@ -258,20 +275,20 @@ class LayerSwitchingGPT2Model(GPT2PreTrainedModel):
 
         self.ln_f = nn.LayerNorm(config.n_embd, eps=config.layer_norm_epsilon)
 
-        if config.d_intermediate_embd is not None:
-            self.output_intermediate_feedforward = nn.ModuleList([
-                nn.Linear(config.n_embd, config.d_intermediate_embd, bias=True)
-                for _ in range(config.n_languages)
-            ])
-
         self.init_weights()
 
-    def tie_weights(self):
-        if self.config.tie_intermediate_embd_weights:
-            assert len(self.input_intermediate_feedforward) == len(self.output_intermediate_feedforward)
 
-            for input_intermediate_ff, output_intermediate_ff in zip(self.input_intermediate_feedforward, self.output_intermediate_feedforward):
-                output_intermediate_ff.weight = nn.Parameter(input_intermediate_ff.weight.transpose(0, 1))
+    def _init_weights(self, module):
+        """Initialize the weights."""
+        if isinstance(module, (nn.Linear, nn.Embedding, Conv1D, SemanticEmbedding)):
+            # Slightly different from the TF version which uses truncated_normal for initialization
+            # cf https://github.com/pytorch/pytorch/pull/5617
+            module.weight.data.normal_(mean=0.0, std=self.config.initializer_range)
+            if isinstance(module, (nn.Linear, Conv1D)) and module.bias is not None:
+                module.bias.data.zero_()
+        elif isinstance(module, nn.LayerNorm):
+            module.bias.data.zero_()
+            module.weight.data.fill_(1.0)
 
 
     def get_input_embeddings(self):
@@ -392,19 +409,19 @@ class LayerSwitchingGPT2Model(GPT2PreTrainedModel):
                 inputs_embeds = self.wte[language](input_ids)
             else:
                 inputs_embeds = self.wte[0](input_ids)
+
+        if self.config.language_specific_transformation:
+            inputs_embeds = torch.tanh(self.language_specific_transformations[language](inputs_embeds))
+
+        if self.config.semantic_concepts is not None:
+            inputs_embeds = inputs_embeds + self.lse(inputs_embeds)
+
         position_embeds = self.wpe(position_ids)
 
-        embeds = inputs_embeds + position_embeds
-        embeds = self.drop(embeds)
+        hidden_states = inputs_embeds + position_embeds
+        hidden_states = self.drop(hidden_states)
 
-        output_shape = input_shape + (embeds.size(-1),)
-
-        if self.config.d_intermediate_embd is not None:
-            hidden_states = self.input_intermediate_feedforward[language](embeds)
-            hidden_states = self.activation_function(hidden_states)
-            hidden_states = self.drop(hidden_states)
-        else:
-            hidden_states = embeds
+        output_shape = input_shape + (hidden_states.size(-1),)
 
         presents = () if use_cache else None
         all_attentions = () if output_attentions else None
@@ -434,11 +451,6 @@ class LayerSwitchingGPT2Model(GPT2PreTrainedModel):
 
         hidden_states = self.ln_f(hidden_states)
 
-        if self.config.d_intermediate_embd is not None:
-            hidden_states = self.output_intermediate_feedforward[language](hidden_states)
-            hidden_states = self.activation_function(hidden_states)
-            hidden_states = self.drop(hidden_states)
-
         hidden_states = hidden_states.view(*output_shape)
         # Add last hidden state
         if output_hidden_states:
@@ -466,16 +478,11 @@ class GPT2LayerSwitchingLMHeadModel(GPT2PreTrainedModel):
 
         self.transformer = LayerSwitchingGPT2Model(config)
 
-        if config.d_intermediate_embd is not None:
-            model_output_size = config.d_intermediate_embd
-        else:
-            model_output_size = config.n_embd
-
         if config.language_specific_prediction_heads:
             # create LM head for each language
-            self.lm_heads = nn.ModuleList([nn.Linear(model_output_size, config.vocab_size, bias=False) for _ in range(config.n_languages)])
+            self.lm_heads = nn.ModuleList([nn.Linear(config.n_embd, config.vocab_size, bias=False) for _ in range(config.n_languages)])
         else:
-            self.lm_heads = nn.ModuleList([nn.Linear(model_output_size, config.vocab_size, bias=False)])
+            self.lm_heads = nn.ModuleList([nn.Linear(config.n_embd, config.vocab_size, bias=False)])
 
         self.init_weights()
 
