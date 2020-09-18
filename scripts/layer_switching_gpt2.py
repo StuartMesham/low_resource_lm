@@ -35,8 +35,6 @@ class LayerSwitchingGPT2Config(PretrainedConfig):
             Dimensionality of the causal mask (usually same as n_positions).
         n_embd (:obj:`int`, optional, defaults to 768):
             Dimensionality of the embeddings and hidden states.
-        tie_intermediate_embd_weights (:obj:`bool`, optional, defaults to False):
-            Whether or not to tie the weights for the language specific feedforward layers.
         n_language_specific_attention_layers (:obj:`int`, optional, defaults to 0):
             Number of attention layers (from the bottom up) to be language specific
         language_specific_input_embeds (:obj:`bool`, optional, defaults to False):
@@ -91,7 +89,6 @@ class LayerSwitchingGPT2Config(PretrainedConfig):
         n_positions=1024,
         n_ctx=1024,
         n_embd=768,
-        tie_intermediate_embd_weights=False,
         n_language_specific_attention_layers=0,
         language_specific_input_embeds=False,
         language_specific_prediction_heads=False,
@@ -117,7 +114,6 @@ class LayerSwitchingGPT2Config(PretrainedConfig):
         self.n_ctx = n_ctx
         self.n_positions = n_positions
         self.n_embd = n_embd
-        self.tie_intermediate_embd_weights = tie_intermediate_embd_weights
         self.n_language_specific_attention_layers = n_language_specific_attention_layers
         self.language_specific_input_embeds = language_specific_input_embeds
         self.language_specific_prediction_heads = language_specific_prediction_heads

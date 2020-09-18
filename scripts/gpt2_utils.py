@@ -286,7 +286,6 @@ def get_gpt2_trainer(hparams: dict, tparams: dict, disable_tqdm=False, disable_p
     assert 'semantic_concepts' in hparams
     assert 'language_specific_transformation' in hparams
     assert 'tie_word_embeddings' in hparams
-    assert 'tie_intermediate_embd_weights' in hparams
 
     assert hparams['optimizer'] == 'adam', 'Only the adam optimizer is currently supported'
     if hparams['optimizer'] == 'SGD':
@@ -319,7 +318,6 @@ def get_gpt2_trainer(hparams: dict, tparams: dict, disable_tqdm=False, disable_p
         eos_token_id=0,
         pad_token_id=0,
         tie_word_embeddings=hparams['tie_word_embeddings'],
-        tie_intermediate_embd_weights=hparams['tie_intermediate_embd_weights'],
     )
 
     model = GPT2LayerSwitchingLMHeadModel(config=config)
