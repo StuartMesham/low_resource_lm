@@ -60,6 +60,12 @@ datasets = [
         'tshivenda.txt',  # output_name
         312,  # lines_to_remove
     ),
+    (
+        'https://repo.sadilar.org/bitstream/handle/20.500.12185/336/corpora.nchlt.st.zip',  # url
+        'st/2.Corpora/CORP.NCHLT.st.CLEAN.2.0.txt',  # file_name
+        'sesotho.txt',  # output_name
+        11,  # lines_to_remove
+    ),
 ]
 
 for url, file_name, output_name, lines_to_remove in datasets:
