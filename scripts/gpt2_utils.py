@@ -283,7 +283,6 @@ def get_gpt2_trainer(hparams: dict, tparams: dict, disable_tqdm=False, disable_p
     assert 'n_languages' in hparams
     assert 'language_specific_input_embeds' in hparams
     assert 'language_specific_prediction_heads' in hparams
-    assert 'latent_semantic_embeds' in hparams
     assert 'semantic_concepts' in hparams
     assert 'language_specific_transformation' in hparams
     assert 'tie_word_embeddings' in hparams
