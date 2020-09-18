@@ -22,7 +22,8 @@ nchlt_files = [
     'setswana.txt',
     'siswati.txt',
     'isindebele.txt',
-    'tshivenda.txt'
+    'tshivenda.txt',
+    'sesotho.txt',
 ]
 
 datasets = [[args.autshumato_dir, autshumato_files],
