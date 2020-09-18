@@ -37,6 +37,7 @@ class RNNModel(nn.Module):
                          range(nlayers)]
             for rnn in self.rnns:
                 rnn.linear = WeightDrop(rnn.linear, ['weight'], dropout=wdrop)
+
         print(self.rnns)
         self.rnns = torch.nn.ModuleList(self.rnns)
         self.decoder = nn.Linear(nhid, ntoken)
@@ -112,3 +113,22 @@ class RNNModel(nn.Module):
         elif self.rnn_type == 'QRNN' or self.rnn_type == 'GRU':
             return [weight.new(1, bsz, self.nhid if l != self.nlayers - 1 else (self.ninp if self.tie_weights else self.nhid)).zero_()
                     for l in range(self.nlayers)]
+
+
+class BasicModel(nn.Module):
+    def __init__(self, ntoken, ninp, nhid, nlayers, dropout=0):
+        super(BasicModel, self).__init__()
+        self.embedding = nn.Embedding(ntoken, ninp)
+        self.lstm = nn.LSTM(input_size=ninp, hidden_size=nhid, num_layers=nlayers, dropout=dropout)
+        self.decoder = nn.Linear(nhid, ntoken)
+
+    def forward(self, x, prev_state):
+        embed = self.embedding(x)
+        output, state = self.lstm(embed, prev_state)
+        result = self.decoder(output)
+        return result, state
+
+    def init_state(self, bsz):
+        return (torch.zeros(self.lstm.num_layers, bsz, self.lstm.hidden_size),
+                torch.zeros(self.lstm.num_layers, bsz, self.lstm.hidden_size))
+
