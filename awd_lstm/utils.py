@@ -29,6 +29,13 @@ def get_batch(source, i, args, seq_len=None, evaluation=False):
     return data, target
 
 
+def get_basic_batch(source, i, args, seq_len=None):
+    seq_len = min(seq_len if seq_len else args.bptt, len(source) - 1 - i)
+    data = source[i:i + seq_len]
+    target = source[i + 1:i + 1 + seq_len]
+    return data, target
+
+
 def debug_print(s, args):
     if args.debug:
         print(s)

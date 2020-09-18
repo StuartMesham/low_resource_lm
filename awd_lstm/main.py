@@ -12,13 +12,13 @@ import os
 import data
 import model
 
-from utils import batchify, get_batch, repackage_hidden, debug_print
+from utils import batchify, get_batch, repackage_hidden, debug_print, get_basic_batch
 
 parser = argparse.ArgumentParser(description='PyTorch PennTreeBank RNN/LSTM Language Model')
 parser.add_argument('--data', type=str, default='data/penn/',
                     help='location of the data corpus')
 parser.add_argument('--model', type=str, default='LSTM',
-                    help='type of recurrent net (LSTM, QRNN, GRU)')
+                    help='type of recurrent net (LSTM, QRNN, GRU, BASIC)')
 parser.add_argument('--emsize', type=int, default=400,
                     help='size of word embeddings')
 parser.add_argument('--nhid', type=int, default=1150,
@@ -80,12 +80,12 @@ args.tied = True
 run_name = str(args.data).replace('/', '-') + "/" + args.model + "/" + datetime.now().strftime(
     "%d|%H:%M") + "_" + args.descriptive_name
 drive_name = "/content/drive/My Drive/Colab Notebooks/runs/"
-# writer = SummaryWriter(drive_name + run_name)
-# sargs = ''
-# for arg in vars(args):
-#     sargs += ("{:<16}: {}  \n".format(str(arg), str(getattr(args, arg))))
-# writer.add_text('args', sargs)
-# print(sargs)
+writer = SummaryWriter(drive_name + run_name)
+sargs = ''
+for arg in vars(args):
+    sargs += ("{:<16}: {}  \n".format(str(arg), str(getattr(args, arg))))
+if not args.log_hparams_only: writer.add_text('args', sargs)
+print(sargs)
 
 # Set the random seed manually for reproducibility.
 np.random.seed(args.seed)
@@ -143,8 +143,51 @@ from splitcross import SplitCrossEntropyLoss
 criterion = None  # CHECK: Could change this for the standard pytorch cross entropy loss
 
 ntokens = len(corpus.dictionary)
-model = model.RNNModel(args.model, ntokens, args.emsize, args.nhid, args.nlayers, args.dropout, args.dropouth,
-                       args.dropouti, args.dropoute, args.wdrop, args.tied)
+
+def basic_train():
+    model.train()
+    criterion = nn.CrossEntropyLoss()
+    optimizer = None
+    params = list(model.parameters()) + list(criterion.parameters())
+
+    if args.optimizer == 'sgd':
+        optimizer = torch.optim.SGD(params, lr=args.lr)
+    if args.optimizer == 'adam':
+        optimizer = torch.optim.Adam(params, lr=args.lr)
+
+    for epoch in range(1, args.epochs + 1):
+        epoch_start_time = time.time()
+        # Fairly certain we can make (hidden, state_c) = hidden
+        hidden, state_c = model.init_state(args.batch_size)
+        batch, i = 0, 0
+
+        while i < train_data.size(0) - 1 - 1:
+            bptt = args.bptt
+            optimizer.zero_grad()
+
+            data, targets = get_basic_batch(train_data, i, args, seq_len=bptt)
+
+            y_pred, (hidden, state_c) = model(data, (hidden, state_c))
+            loss = criterion(y_pred.transpose(1,2), targets)
+
+            hidden = hidden.detach()
+            state_c = state_c.detach()
+
+            loss.backward()
+            optimizer.step()
+
+            print({'epoch': epoch, 'batch': batch, 'loss': loss.item()})
+
+            batch += 1
+            i += bptt
+
+if args.model == 'BASIC':
+    model = model.BasicModel(ntokens, args.emsize, args.nhid, args.nlayers, args.dropout)
+    basic_train()
+
+else:
+    model = model.RNNModel(args.model, ntokens, args.emsize, args.nhid, args.nlayers, args.dropout, args.dropouth,
+                           args.dropouti, args.dropoute, args.wdrop, args.tied)
 # writer.add_graph(model, )
 ###
 if args.resume:
@@ -182,12 +225,16 @@ params = list(model.parameters()) + list(criterion.parameters())
 total_params = sum(x.size()[0] * x.size()[1] if len(x.size()) > 1 else x.size()[0] for x in params if x.size())
 print('Args:', args)
 print('Model total parameters:', total_params)
-writer.add_text('model_structure', "Total Params: " + str(total_params) + "  \n" + str(model))
+print(model)
+if not args.log_hparams_only: writer.add_text('model_structure',
+                                              "Total Params: " + str(total_params) + "  \n" + str(model).replace('\n',
+                                                                                                                 '  \n'))
 
 
 ###############################################################################
 # Training code
 ###############################################################################
+
 
 def evaluate(data_source, batch_size=10):
     # Turn on evaluation mode which disables dropout.
@@ -203,6 +250,10 @@ def evaluate(data_source, batch_size=10):
         total_loss += len(data) * criterion(model.decoder.weight, model.decoder.bias, output, targets).data
         hidden = repackage_hidden(hidden)
     return total_loss.item() / len(data_source)
+
+
+
+
 
 
 def train():
@@ -365,7 +416,6 @@ writer.add_hparams(args.__dict__,
                    {'hparam/val_loss': stored_loss,
                     'hparam/val_bpc': stored_loss / math.log(2) / corpus.dictionary.avg_characters_per_token.get(
                         'valid')})
-
 
 print("Evaluating on test data...")
 # Run on test data.
