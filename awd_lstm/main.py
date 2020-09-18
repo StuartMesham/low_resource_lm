@@ -75,6 +75,7 @@ parser.add_argument('--early_exit', default=False,
 parser.add_argument('--descriptive_name', default='', help='Descriptive tag to add to the tensorboard save details.')
 parser.add_argument('--log_hparams_only', default=False,
                     help='Skip training and jump straight to logging validation score for hparams metrics')
+parser.add_argument('--basic', default = False)
 args = parser.parse_args()
 args.tied = True
 run_name = str(args.data).replace('/', '-') + "/" + args.model + "/" + datetime.now().strftime(
@@ -235,7 +236,6 @@ if not args.log_hparams_only: writer.add_text('model_structure',
 # Training code
 ###############################################################################
 
-
 def evaluate(data_source, batch_size=10):
     # Turn on evaluation mode which disables dropout.
     model.eval()
@@ -252,10 +252,6 @@ def evaluate(data_source, batch_size=10):
     return total_loss.item() / len(data_source)
 
 
-
-
-
-
 def train():
     global writer
     # Turn on training mode which enables dropout.
@@ -269,6 +265,11 @@ def train():
         bptt = args.bptt if np.random.random() < 0.95 else args.bptt / 2.
         # Prevent excessively small or negative sequence lengths
         seq_len = max(5, int(np.random.normal(bptt, 5)))
+
+        if args.basic:
+            bptt = args.bptt
+            seq_len = bptt
+
         # There's a very small chance that it could select a very long sequence length resulting in OOM
         # seq_len = min(seq_len, args.bptt + 10)
 
@@ -386,11 +387,12 @@ if not args.log_hparams_only:
                     print('Saving model (new best validation)')
                     stored_loss = val_loss
 
-                if args.optimizer == 'sgd' and 't0' not in optimizer.param_groups[0] and (
-                        len(best_val_loss) > args.nonmono and val_loss > min(best_val_loss[:-args.nonmono])):
-                    print('Switching to ASGD')
-                    optimizer = torch.optim.ASGD(model.parameters(), lr=args.lr, t0=0, lambd=0.,
-                                                 weight_decay=args.wdecay)
+                if not args.basic:
+                    if args.optimizer == 'sgd' and 't0' not in optimizer.param_groups[0] and (
+                            len(best_val_loss) > args.nonmono and val_loss > min(best_val_loss[:-args.nonmono])):
+                        print('Switching to ASGD')
+                        optimizer = torch.optim.ASGD(model.parameters(), lr=args.lr, t0=0, lambd=0.,
+                                                     weight_decay=args.wdecay)
 
                 if epoch in args.when:
                     print('Saving model before learning rate decreased')
@@ -416,6 +418,7 @@ writer.add_hparams(args.__dict__,
                    {'hparam/val_loss': stored_loss,
                     'hparam/val_bpc': stored_loss / math.log(2) / corpus.dictionary.avg_characters_per_token.get(
                         'valid')})
+
 
 print("Evaluating on test data...")
 # Run on test data.
