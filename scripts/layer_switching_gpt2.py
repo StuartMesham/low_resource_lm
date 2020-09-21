@@ -236,6 +236,9 @@ class SemanticEmbedding(nn.Module):
 
 
 class LayerSwitchingGPT2Model(GPT2PreTrainedModel):
+
+    config_class = LayerSwitchingGPT2Config
+
     def __init__(self, config):
         super().__init__(config)
 
@@ -464,6 +467,9 @@ class LayerSwitchingGPT2Model(GPT2PreTrainedModel):
 
 
 class GPT2LayerSwitchingLMHeadModel(GPT2PreTrainedModel):
+
+    config_class = LayerSwitchingGPT2Config
+
     def __init__(self, config):
         super().__init__(config)
 
