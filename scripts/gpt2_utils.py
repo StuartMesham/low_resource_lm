@@ -5,9 +5,11 @@ import os
 import pickle
 import time
 from dataclasses import dataclass
+from datetime import datetime
 from itertools import accumulate
 from math import log
 from typing import List, Tuple
+from uuid import uuid4
 
 import torch
 from filelock import FileLock
@@ -29,6 +31,9 @@ else:
     device = 'cpu'
 
 CACHE_DIR = 'caches'
+TB_DIR = 'logs/runs'
+LOG_DIR = 'logs'
+MODEL_DIR = 'model_saves'
 
 logger = logging.getLogger(__name__)
 
@@ -263,10 +268,11 @@ def default_hparams_logdir() -> str:
     return os.path.join("hparam_tests", current_time + "_" + socket.gethostname())
 
 
-def get_gpt2_trainer(hparams: dict, tparams: dict, disable_tqdm=False, disable_prediction_tqdm=True, log_to_console=False):
+def get_gpt2_trainer(experiment_id, hparams: dict, tparams: dict, disable_tqdm=False, disable_prediction_tqdm=True, log_to_console=False):
     assert 'vocab_size' in hparams
     assert 'train_data' in hparams
     assert 'val_data' in hparams
+    assert 'test_data' in hparams
     assert 'model_max_input_size' in hparams
     assert 'pdrop' in hparams
     assert 'd_model' in hparams
@@ -369,10 +375,9 @@ def get_gpt2_trainer(hparams: dict, tparams: dict, disable_tqdm=False, disable_p
         list(tokenizers.values())[0].pad_token_id
     )
 
-    model_id = hashlib.md5(repr(hparams).encode()).hexdigest()
-
     training_args = TrainingArguments(
-        output_dir=os.path.join(CACHE_DIR, f'model_{model_id}'),
+        output_dir=os.path.join(MODEL_DIR, experiment_id),
+        logging_dir=os.path.join(TB_DIR, experiment_id),
         save_steps=tparams['save_steps'],
         max_steps=tparams['max_steps'],
         per_device_train_batch_size=1,
@@ -433,10 +438,11 @@ def get_gpt2_trainer(hparams: dict, tparams: dict, disable_tqdm=False, disable_p
     return trainer
 
 
-def run_experiment(hparams: dict, tparams: dict, tb_writer=None, eval_stride=64, disable_tqdm=True, disable_prediction_tqdm=True, log_to_console=False):
-    trainer = get_gpt2_trainer(hparams, tparams, disable_tqdm, disable_prediction_tqdm, log_to_console)
+def run_experiment(hparams: dict, tparams: dict, eval_stride=64, disable_tqdm=True, disable_prediction_tqdm=True, log_to_console=False):
+    experiment_id = uuid4().hex  # create a random experiment ID
+    trainer = get_gpt2_trainer(experiment_id, hparams, tparams, disable_tqdm, disable_prediction_tqdm, log_to_console)
     trainer.train()
-    metrics = evaluate_bpcs(
+    val_metrics = evaluate_bpcs(
         trainer.tokenizers,
         trainer.model,
         hparams['val_data'],
@@ -444,8 +450,27 @@ def run_experiment(hparams: dict, tparams: dict, tb_writer=None, eval_stride=64,
         stride=eval_stride,
         disable_tqdm=disable_prediction_tqdm,
     )
-    logger.info(repr(metrics))
-    if tb_writer is not None:
-        log_dict = {'steps': trainer.global_step}
-        log_dict.update(metrics)
-        tb_writer.add_hparams(sanitise_hparams_for_tb(hparams), metric_dict=log_dict)
+    logger.info(repr(val_metrics))
+
+    test_metrics = evaluate_bpcs(
+        trainer.tokenizers,
+        trainer.model,
+        hparams['test_data'],
+        input_block_size=hparams['train_block_size'],
+        stride=eval_stride,
+        disable_tqdm=disable_prediction_tqdm,
+    )
+    logger.info(repr(test_metrics))
+
+    log_data = {
+        'id': experiment_id,
+        'completion_time': datetime.now().strftime("%x %X"),
+        'steps': trainer.global_step,
+        'hparams': hparams,
+        'tparams': tparams,
+        'val_metrics': val_metrics,
+        'test_metrics': test_metrics,
+    }
+
+    with open(os.path.join(LOG_DIR, 'hparam_test.txt'), 'a') as logfile:
+        logfile.write(repr(log_data) + '\n')
