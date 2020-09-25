@@ -75,13 +75,14 @@ parser.add_argument('--early_exit', default=False,
 parser.add_argument('--descriptive_name', default='', help='Descriptive tag to add to the tensorboard save details.')
 parser.add_argument('--log_hparams_only', default=False,
                     help='Skip training and jump straight to logging validation score for hparams metrics')
-parser.add_argument('--basic', default = False)
+parser.add_argument('--basic', default=False)
+parser.add_argument('--chpc', default=False, help='Changes the tensoboard logging for chpc logging (no google drive)')
 args = parser.parse_args()
 args.tied = True
 run_name = str(args.data).replace('/', '-') + "/" + args.model + "/" + datetime.now().strftime(
     "%d|%H:%M") + "_" + args.descriptive_name
-drive_name = "/content/drive/My Drive/Colab Notebooks/runs/"
-writer = SummaryWriter(drive_name + run_name)
+drive_name = "/content/drive/My Drive/Colab Notebooks/"
+writer = SummaryWriter('runs/' + (drive_name if not args.chpc else '') + run_name)
 sargs = ''
 for arg in vars(args):
     sargs += ("{:<16}: {}  \n".format(str(arg), str(getattr(args, arg))))
@@ -145,6 +146,7 @@ criterion = None  # CHECK: Could change this for the standard pytorch cross entr
 
 ntokens = len(corpus.dictionary)
 
+
 def basic_train():
     model.train()
     criterion = nn.CrossEntropyLoss()
@@ -169,7 +171,7 @@ def basic_train():
             data, targets = get_basic_batch(train_data, i, args, seq_len=bptt)
 
             y_pred, (hidden, state_c) = model(data, (hidden, state_c))
-            loss = criterion(y_pred.transpose(1,2), targets)
+            loss = criterion(y_pred.transpose(1, 2), targets)
 
             hidden = hidden.detach()
             state_c = state_c.detach()
@@ -181,6 +183,7 @@ def basic_train():
 
             batch += 1
             i += bptt
+
 
 if args.model == 'BASIC':
     model = model.BasicModel(ntokens, args.emsize, args.nhid, args.nlayers, args.dropout)
@@ -418,7 +421,6 @@ writer.add_hparams(args.__dict__,
                    {'hparam/val_loss': stored_loss,
                     'hparam/val_bpc': stored_loss / math.log(2) / corpus.dictionary.avg_characters_per_token.get(
                         'valid')})
-
 
 print("Evaluating on test data...")
 # Run on test data.
