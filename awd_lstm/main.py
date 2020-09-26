@@ -68,7 +68,7 @@ parser.add_argument('--optimizer', type=str, default='sgd',
                     help='optimizer to use (sgd, adam)')
 parser.add_argument('--when', nargs="+", type=int, default=[-1],
                     help='When (which epochs) to divide the learning rate by 10 - accepts multiple')
-parser.add_argument('--vocab_size', default=5000, help='size of vocab ONLY IF using bpe')
+parser.add_argument('--vocab_size', default=5000, help='size of vocab ONLY IF using bpe', type=int)
 parser.add_argument('--use_bpe', default=True, help='use huggingface byte level bpe tokenizer')
 parser.add_argument('--early_exit', default=False,
                     help='Exit early from model training once valid_loss is not changing enough per run')
@@ -82,7 +82,7 @@ args.tied = True
 run_name = str(args.data).replace('/', '-') + "/" + args.model + "/" + datetime.now().strftime(
     "%d|%H:%M") + "_" + args.descriptive_name
 drive_name = "/content/drive/My Drive/Colab Notebooks/"
-writer = SummaryWriter((drive_name if not args.chpc else '') + 'runs/' + run_name)
+# writer = SummaryWriter((drive_name if not args.chpc else '') + 'runs/' + run_name)
 sargs = ''
 for arg in vars(args):
     sargs += ("{:<16}: {}  \n".format(str(arg), str(getattr(args, arg))))
@@ -229,6 +229,7 @@ params = list(model.parameters()) + list(criterion.parameters())
 total_params = sum(x.size()[0] * x.size()[1] if len(x.size()) > 1 else x.size()[0] for x in params if x.size())
 print('Args:', args)
 print('Model total parameters:', total_params)
+writer.add_scalar('total_params', total_params)
 print(model)
 if not args.log_hparams_only: writer.add_text('model_structure',
                                               "Total Params: " + str(total_params) + "  \n" + str(model).replace('\n',
