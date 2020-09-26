@@ -81,8 +81,8 @@ args = parser.parse_args()
 args.tied = True
 run_name = str(args.data).replace('/', '-') + "/" + args.model + "/" + datetime.now().strftime(
     "%d|%H:%M") + "_" + args.descriptive_name
-drive_name = "content/drive/My Drive/Colab Notebooks/"
-writer = SummaryWriter('runs/' + (drive_name if not args.chpc else '') + run_name)
+drive_name = "/content/drive/My Drive/Colab Notebooks/"
+writer = SummaryWriter((drive_name if not True else '') + 'runs/' + run_name)
 sargs = ''
 for arg in vars(args):
     sargs += ("{:<16}: {}  \n".format(str(arg), str(getattr(args, arg))))
