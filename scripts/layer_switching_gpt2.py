@@ -46,6 +46,10 @@ class LayerSwitchingGPT2Config(PretrainedConfig):
             If None, then universal latent semantic embeddings will not be used.
         language_specific_transformation (:obj:`bool`, optional, defaults to False):
             Whether or not to use language specific transformations
+        inverse_language_specific_transformation (:obj:`bool`, optional, defaults to False):
+            Whether or not to use inverse language specific transformations
+        tie_language_specific_transformation_weights (:obj:`bool`, optional, defaults to False):
+            Whether or not to tie inverse language specific transformation weights
         n_languages (:obj:`int`, optional, defaults to 1):
             Number of languages for language specific layers
         n_layer (:obj:`int`, optional, defaults to 12):
@@ -93,6 +97,8 @@ class LayerSwitchingGPT2Config(PretrainedConfig):
         language_specific_input_embeds=False,
         language_specific_prediction_heads=False,
         language_specific_transformation=False,
+        inverse_language_specific_transformation=False,
+        tie_language_specific_transformation_weights=False,
         semantic_concepts=None,
         n_languages=1,
         n_layer=12,
@@ -118,6 +124,8 @@ class LayerSwitchingGPT2Config(PretrainedConfig):
         self.language_specific_input_embeds = language_specific_input_embeds
         self.language_specific_prediction_heads = language_specific_prediction_heads
         self.language_specific_transformation = language_specific_transformation
+        self.inverse_language_specific_transformation = inverse_language_specific_transformation
+        self.tie_language_specific_transformation_weights = tie_language_specific_transformation_weights
         self.semantic_concepts = semantic_concepts
         self.n_languages = n_languages
         self.n_layer = n_layer
@@ -274,7 +282,23 @@ class LayerSwitchingGPT2Model(GPT2PreTrainedModel):
 
         self.ln_f = nn.LayerNorm(config.n_embd, eps=config.layer_norm_epsilon)
 
+        if self.config.inverse_language_specific_transformation:
+            assert self.config.language_specific_transformation
+
+            self.inverse_language_specific_transformations = nn.ModuleList([
+                nn.Linear(self.config.n_embd, self.config.n_embd, bias=False)
+                for _ in range(config.n_languages)
+            ])
+
         self.init_weights()
+
+    def tie_weights(self):
+        if self.config.tie_language_specific_transformation_weights:
+            assert self.config.language_specific_transformation and self.config.inverse_language_specific_transformation
+            assert len(self.language_specific_transformations) == len(self.inverse_language_specific_transformations)
+
+            for input_intermediate_ff, output_intermediate_ff in zip(self.language_specific_transformations, self.inverse_language_specific_transformations):
+                output_intermediate_ff.weight = nn.Parameter(input_intermediate_ff.weight.transpose(0, 1))
 
 
     def _init_weights(self, module):
@@ -449,6 +473,9 @@ class LayerSwitchingGPT2Model(GPT2PreTrainedModel):
                 all_attentions = all_attentions + (outputs[2],)
 
         hidden_states = self.ln_f(hidden_states)
+
+        if self.config.inverse_language_specific_transformation:
+            hidden_states = torch.tanh(self.inverse_language_specific_transformations[language](hidden_states))
 
         hidden_states = hidden_states.view(*output_shape)
         # Add last hidden state

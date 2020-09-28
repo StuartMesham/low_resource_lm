@@ -291,7 +291,9 @@ def get_gpt2_trainer(experiment_id, hparams: dict, tparams: dict, disable_tqdm=F
     assert 'language_specific_prediction_heads' in hparams
     assert 'semantic_concepts' in hparams
     assert 'language_specific_transformation' in hparams
+    assert 'inverse_language_specific_transformation' in hparams
     assert 'tie_word_embeddings' in hparams
+    assert 'tie_language_specific_transformation_weights' in hparams
 
     assert hparams['optimizer'] == 'adam', 'Only the adam optimizer is currently supported'
     if hparams['optimizer'] == 'SGD':
@@ -316,6 +318,8 @@ def get_gpt2_trainer(experiment_id, hparams: dict, tparams: dict, disable_tqdm=F
         language_specific_prediction_heads=hparams['language_specific_prediction_heads'],
         semantic_concepts=hparams['semantic_concepts'],
         language_specific_transformation=hparams['language_specific_transformation'],
+        inverse_language_specific_transformation=hparams['inverse_language_specific_transformation'],
+        tie_language_specific_transformation_weights=hparams['tie_language_specific_transformation_weights'],
         attn_pdrop=hparams['pdrop'],
         embd_pdrop=hparams['pdrop'],
         resid_pdrop=hparams['pdrop'],
