@@ -7,3 +7,4 @@ torch
 tqdm
 tensorboard
 -e git://github.com/StuartMesham/transformers.git@low_resource_lm#egg=transformers
+pandas

@@ -20,5 +20,5 @@ def flatten_dict(d):
 
 dicts = [flatten_dict(d) for d in dicts]
 
-df = pd.DataFram(dicts)
+df = pd.DataFrame(dicts)
 df.to_csv('hparam_tests.csv', index=False)
