@@ -132,7 +132,8 @@ class MultilingualCachedTextDataset(Dataset):
 
         self.language_ids = [language_id for language_id, _, _ in datasets_info]
 
-        self._lengths = [(len(dataset)+batch_size-1)//batch_size for dataset in self.datasets]
+        # round down so we don't get smaller batches at the end
+        self._lengths = [len(dataset)//batch_size for dataset in self.datasets]
         self._cumulative_lengths = list(accumulate(self._lengths))
 
         self.length = sum(self._lengths)
