@@ -305,6 +305,7 @@ def get_gpt2_trainer(experiment_id, hparams: dict, tparams: dict, disable_tqdm=F
     assert 'log_steps' in tparams
     assert 'eval_steps' in tparams
     assert 'save_steps' in tparams
+    assert 'num_workers' in tparams
 
     config = LayerSwitchingGPT2Config(
         vocab_size=hparams['vocab_size'],
@@ -397,6 +398,7 @@ def get_gpt2_trainer(experiment_id, hparams: dict, tparams: dict, disable_tqdm=F
         disable_prediction_tqdm=disable_prediction_tqdm,
         hparams=hparams,
         is_dataset_pre_batched=True,
+        num_workers=tparams['num_workers'],
     )
 
     # no_decay = ["bias", "LayerNorm.weight"]
