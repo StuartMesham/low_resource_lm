@@ -35,6 +35,8 @@ class Corpus(object):
             # TODO: fix the decoding step
             assert os.path.exists(path), "Path does not exist: " + path
 
+            print("-------------------------------------------------------------")
+
             tokenizer = ByteLevelBPETokenizer()
             if len(tokenizer_data) != 0:
                 print("Training tokenizer on: "+os.path.join(tokenizer_data, 'train.txt'))
@@ -54,6 +56,7 @@ class Corpus(object):
                     vocab_size=vocab_size,
                     show_progress=False
                 )
+            print("-------------------------------------------------------------")
 
             print("Encoding dataset at: " + path)
             with open(os.path.join(path, 'train.txt'), 'r', encoding='utf-8') as f:
@@ -88,6 +91,7 @@ class Corpus(object):
                     ids[index] = id
                 self.test = ids
                 self.dictionary.avg_characters_per_token['test'] = len(text) / len(enc.ids)
+            print("-------------------------------------------------------------")
 
             self.dictionary.word2idx = tokenizer.get_vocab()
             self.dictionary.idx2word = [tokenizer.id_to_token(x) for x in range(tokenizer.get_vocab_size())]
