@@ -27,7 +27,7 @@ class Dictionary(object):
 
 
 class Corpus(object):
-    def __init__(self, path, vocab_size=-1, use_bpe=False):
+    def __init__(self, path, vocab_size=-1, use_bpe=False, tokenizer_data=""):
         self.dictionary = Dictionary()
 
         if use_bpe:
@@ -36,15 +36,22 @@ class Corpus(object):
             assert os.path.exists(path), "Path does not exist: " + path
 
             tokenizer = ByteLevelBPETokenizer()
-            tokenizer.train(
-                [
-                    os.path.join(path, 'train.txt')
-                    # os.path.join(path, 'valid.txt'),
-                    # os.path.join(path, 'test.txt')
-                ],
-                vocab_size=vocab_size,
-                show_progress=False
-            )
+            if len(tokenizer_data) != 0:
+                tokenizer.train(
+                    [os.path.join(tokenizer_data, 'train.txt')],
+                    vocab_size=vocab_size,
+                    show_progress=False
+                )
+            else:
+                tokenizer.train(
+                    [
+                        os.path.join(path, 'train.txt')
+                        # os.path.join(path, 'valid.txt'),
+                        # os.path.join(path, 'test.txt')
+                    ],
+                    vocab_size=vocab_size,
+                    show_progress=False
+                )
             with open(os.path.join(path, 'train.txt'), 'r', encoding='utf-8') as f:
                 text = f.read()
                 enc = tokenizer.encode(text)
@@ -54,7 +61,7 @@ class Corpus(object):
                 for index, id in enumerate(enc.ids):
                     ids[index] = id
                 self.train = ids
-                self.dictionary.avg_characters_per_token['train'] = len(text)/len(enc.ids)
+                self.dictionary.avg_characters_per_token['train'] = len(text) / len(enc.ids)
 
             with open(os.path.join(path, 'valid.txt'), 'r', encoding='utf-8') as f:
                 text = f.read()
@@ -65,7 +72,7 @@ class Corpus(object):
                 for index, id in enumerate(enc.ids):
                     ids[index] = id
                 self.valid = ids
-                self.dictionary.avg_characters_per_token['valid'] = len(text)/len(enc.ids)
+                self.dictionary.avg_characters_per_token['valid'] = len(text) / len(enc.ids)
 
             with open(os.path.join(path, 'test.txt'), 'r', encoding='utf-8') as f:
                 text = f.read()
@@ -76,7 +83,7 @@ class Corpus(object):
                 for index, id in enumerate(enc.ids):
                     ids[index] = id
                 self.test = ids
-                self.dictionary.avg_characters_per_token['test'] = len(text)/len(enc.ids)
+                self.dictionary.avg_characters_per_token['test'] = len(text) / len(enc.ids)
 
             self.dictionary.word2idx = tokenizer.get_vocab()
             self.dictionary.idx2word = [tokenizer.id_to_token(x) for x in range(tokenizer.get_vocab_size())]
