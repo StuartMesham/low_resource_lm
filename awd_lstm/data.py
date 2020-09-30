@@ -37,12 +37,14 @@ class Corpus(object):
 
             tokenizer = ByteLevelBPETokenizer()
             if len(tokenizer_data) != 0:
+                print("Training tokenizer on: "+os.path.join(tokenizer_data, 'train.txt'))
                 tokenizer.train(
                     [os.path.join(tokenizer_data, 'train.txt')],
                     vocab_size=vocab_size,
                     show_progress=False
                 )
             else:
+                print("Training tokenizer on: "+os.path.join(path, 'train.txt'))
                 tokenizer.train(
                     [
                         os.path.join(path, 'train.txt')
@@ -52,6 +54,8 @@ class Corpus(object):
                     vocab_size=vocab_size,
                     show_progress=False
                 )
+
+            print("Encoding dataset at: " + path)
             with open(os.path.join(path, 'train.txt'), 'r', encoding='utf-8') as f:
                 text = f.read()
                 enc = tokenizer.encode(text)
