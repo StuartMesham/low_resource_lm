@@ -77,6 +77,7 @@ parser.add_argument('--log_hparams_only', default=False,
                     help='Skip training and jump straight to logging validation score for hparams metrics')
 parser.add_argument('--basic', default=False)
 parser.add_argument('--chpc', default=False, help='Changes the tensoboard logging for chpc logging (no google drive)')
+parser.add_argument('--tokenizer_data', default="", help='Used when taking a model trained on one domain (this) and run against a different domain')
 args = parser.parse_args()
 args.tied = True
 run_name = str(args.data).replace('/', '-') + "/" + args.model + "/" + datetime.now().strftime(
@@ -121,12 +122,12 @@ import os
 import hashlib
 
 fn = 'corpus.{}.data'.format(hashlib.md5(args.data.encode()).hexdigest())
-if os.path.exists(fn):
+if os.path.exists(fn) and len(args.tokenizer_data) == 0:
     print('Loading cached dataset...')
     corpus = torch.load(fn)
 else:
     print('Producing dataset...')
-    corpus = data.Corpus(args.data, args.vocab_size, args.use_bpe)
+    corpus = data.Corpus(args.data, args.vocab_size, args.use_bpe, args.tokenizer_data)
     torch.save(corpus, fn)
 
 eval_batch_size = 10
