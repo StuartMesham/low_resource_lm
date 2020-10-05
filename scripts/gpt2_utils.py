@@ -484,7 +484,7 @@ def run_experiment(
         log_to_console,
         resume_checkpoint_dir,
     )
-    trainer.train()
+    trainer.train(model_path=resume_checkpoint_dir)
     val_metrics = evaluate_bpcs(
         trainer.tokenizers,
         trainer.model,
