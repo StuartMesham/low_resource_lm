@@ -1,7 +1,7 @@
 # Written in part by both Stuart Mesham (MSHSTU001) and Luc Hayward (HYWLUC001)
 
 #!/bin/bash
-export PYTHONPATH=$PYTHONPATH:`pwd`:`pwd`/scripts
+export PYTHONPATH=$PYTHONPATH:`pwd`/scripts
 
 echo 'fetching nchlt data'
 mkdir -p data/nchlt
