@@ -54,4 +54,4 @@ We use a custom fork with the following modifications:
 2. Bits-per-character evaluation during training added to Trainer class.
 3. Minor modifications to Trainer and TrainingArguments classes for compatibility with custom data loading code used to enable multilingual training with language specific weights.
 
-These modifications can be inspected in `transformers/src/transformers/trainer` and `transformers/src/transformers/training_args` in the HuggingFace fork.
+These modifications can be inspected in `transformers/src/transformers/trainer` and `transformers/src/transformers/training_args` in [our HuggingFace fork](https://github.com/StuartMesham/transformers/tree/low_resource_lm).
