@@ -454,7 +454,7 @@ def run_experiment(
         tparams: dict,
         eval_stride=64,
         disable_tqdm=True,
-        disable_prediction_tqdm=True,
+        disable_prediction_tqdm=False,
         log_to_console=True,
         experiment_id=None,
         resume_checkpoint_dir=None,
