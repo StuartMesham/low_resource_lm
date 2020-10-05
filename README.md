@@ -10,6 +10,11 @@ install requirements:
 pip3 install -r requirements.txt
 ```
 
+add scripts directory to PYTHONPATH:
+```bash
+export PYTHONPATH=$PYTHONPATH:`pwd`/scripts
+```
+
 fetch training data:
 ```bash
 ./scripts/fetch_data.sh
