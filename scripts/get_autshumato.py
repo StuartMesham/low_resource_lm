@@ -1,3 +1,5 @@
+#  Written in part by both Stuart Mesham (MSHSTU001) and Luc Hayward (HYWLUC001)
+
 import argparse
 import requests
 import zipfile
@@ -43,7 +45,7 @@ for url, file_name, output_name, lines_to_remove in datasets:
 
     print('total sentences in {}:'.format(output_name), len(sentences))
 
-# print('Autshumato datasets provided under Creative Commons Attribution Non-Commercial ShareAlike, '
-#       'CTexT (Centre for Text Technology, North-West University), South Africa; '
-#       'Department of Arts and Culture, South Africa. '
-#       'http://autshumato.sourceforge.net/ and http://www.nwu.ac.za/ctext')
+print('Autshumato datasets provided under Creative Commons Attribution Non-Commercial ShareAlike, '
+      'CTexT (Centre for Text Technology, North-West University), South Africa; '
+      'Department of Arts and Culture, South Africa. '
+      'http://autshumato.sourceforge.net/ and http://www.nwu.ac.za/ctext')

@@ -1,3 +1,7 @@
+# Written in large part by the AWD-LSTM team, all changes by Luc Hayward (HYWLUC001)
+# Changed blocks are noted in the code below (significant blocks at lines 78, 123, 167, 346 and 447
+
+
 import argparse
 import time
 import math
@@ -5,6 +9,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 
+# Included tensorboardX required for tensorboard logging integration with the older pytorch0.4.1 library.
 from tensorboardX import SummaryWriter
 from datetime import datetime
 import os
@@ -68,6 +73,9 @@ parser.add_argument('--optimizer', type=str, default='sgd',
                     help='optimizer to use (sgd, adam)')
 parser.add_argument('--when', nargs="+", type=int, default=[-1],
                     help='When (which epochs) to divide the learning rate by 10 - accepts multiple')
+
+
+# -----------------------------------------Written by Luc Hayward----------------------------------------------------- #
 parser.add_argument('--vocab_size', default=5000, help='size of vocab ONLY IF using bpe', type=int)
 parser.add_argument('--use_bpe', default=True, help='use huggingface byte level bpe tokenizer')
 parser.add_argument('--early_exit', default=False,
@@ -89,6 +97,8 @@ for arg in vars(args):
     sargs += ("{:<16}: {}  \n".format(str(arg), str(getattr(args, arg))))
 if not args.log_hparams_only: writer.add_text('args', sargs)
 print(sargs)
+# ------------------------------------------------------------------------------------------------------------------- #
+
 
 # Set the random seed manually for reproducibility.
 np.random.seed(args.seed)
@@ -108,8 +118,13 @@ def model_save(fn):
     with open(fn, 'wb') as f:
         torch.save([model, criterion, optimizer], f)
 
+# -----------------------------------------Adjusted by Luc Hayward---------------------------------------------------- #
 
 def model_load(fn):
+    """
+    Loads the model and associated optimizer and criterion
+    - Fixed the issue where cuda check is not performed causing crashes
+    """
     global model, criterion, optimizer
     with open(fn, 'rb') as f:
         if torch.cuda.is_available():
@@ -117,17 +132,19 @@ def model_load(fn):
         else:
             model, criterion, optimizer = torch.load(f, map_location='cpu')
 
+# -------------------------------------------------------------------------------------------------------------------- #
 
 import os
 import hashlib
 
 fn = 'corpus.{}.data'.format(hashlib.md5(args.data.encode()).hexdigest())
+# Added check to allow for training BPE on a seperate language to that which is used for the model.
 if os.path.exists(fn) and len(args.tokenizer_data) == 0:
     print('Loading cached dataset...')
     corpus = torch.load(fn)
 else:
     print('Producing dataset...')
-    corpus = data.Corpus(args.data, args.vocab_size, args.use_bpe, args.tokenizer_data)
+    corpus = data.Corpus(args.data, args.vocab_size, args.use_bpe, args.tokenizer_data)  # Added args for cross language
     torch.save(corpus, fn)
 
 eval_batch_size = 10
@@ -136,19 +153,24 @@ train_data = batchify(corpus.train, args.batch_size, args)
 val_data = batchify(corpus.valid, eval_batch_size, args)
 test_data = batchify(corpus.test, test_batch_size, args)
 print(corpus.dictionary.avg_characters_per_token)
-# CHECK: Why is validation batching not the same as testing/training
 ###############################################################################
 # Build the model
 ###############################################################################
 
 from splitcross import SplitCrossEntropyLoss
 
-criterion = None  # CHECK: Could change this for the standard pytorch cross entropy loss
+criterion = None
 
 ntokens = len(corpus.dictionary)
 
+# ------------------------------------------Written by Luc Hayward---------------------------------------------------- #
+
 
 def basic_train():
+    """
+    Started working on a custom basic LSTM model integrated with the rest of the AWD-LSTM library.
+    Ultimately chose not to use for the final models
+    """
     model.train()
     criterion = nn.CrossEntropyLoss()
     optimizer = None
@@ -193,8 +215,11 @@ if args.model == 'BASIC':
 else:
     model = model.RNNModel(args.model, ntokens, args.emsize, args.nhid, args.nlayers, args.dropout, args.dropouth,
                            args.dropouti, args.dropoute, args.wdrop, args.tied)
-# writer.add_graph(model, )
-###
+
+# -------------------------------------------------------------------------------------------------------------------- #
+
+
+
 if args.resume:
     print('Resuming model ...')
     model_load(args.resume)
@@ -230,6 +255,8 @@ params = list(model.parameters()) + list(criterion.parameters())
 total_params = sum(x.size()[0] * x.size()[1] if len(x.size()) > 1 else x.size()[0] for x in params if x.size())
 print('Args:', args)
 print('Model total parameters:', total_params)
+
+# -------------------------------------Added tensorboard logging------------------------------------------------------ #
 writer.add_scalar('total_params', total_params)
 print(model)
 if not args.log_hparams_only: writer.add_text('model_structure',
@@ -312,11 +339,16 @@ def train():
                   'loss {:5.2f} | ppl {:8.2f} | bpc {:8.3f}'.format(
                 epoch, batch, len(train_data) // args.bptt, optimizer.param_groups[0]['lr'],
                               elapsed * 1000 / args.log_interval, cur_loss, math.exp(cur_loss),
-                              cur_loss / math.log(2)))  # TODO: WRONG! Need to divide again by characters/token
+                              cur_loss / math.log(2)))
+    # Note: BPC is WRONG here! Need to divide again by characters/token to get actual BPC value. This is Bits per Token
+
+# -------------------------------------Added tensorboard logging------------------------------------------------------ #
             writer.add_scalar('train/loss', cur_loss, (epoch - 1) * (len(train_data) // args.bptt) + batch)
             writer.add_scalar('train/ppl', math.exp(cur_loss), (epoch - 1) * (len(train_data) // args.bptt) + batch)
             writer.add_scalar('train/bpc (token)', cur_loss / math.log(2),
                               (epoch - 1) * (len(train_data) // args.bptt) + batch)
+# -------------------------------------------------------------------------------------------------------------------- #
+
             total_loss = 0
             start_time = time.time()
         ###
@@ -330,16 +362,8 @@ best_val_loss = []
 stored_loss = 100000000
 old_loss = 100000000
 new_loss = 100000000
-# # Run on test data.
-# test_loss = evaluate(test_data, test_batch_size)
-# print('=' * 89)
-# print('| End of training | test loss {:5.2f} | test ppl {:8.2f} | test bpc {:8.3f}'.format(
-#     test_loss, math.exp(test_loss), test_loss / math.log(2)))  # NOTE: Ask Jan about bpc here
-# print('=' * 89)  # NOTE: NOT BPC but rather token level cross entropy etc, can I just divide by avg token length
-#
-#
 
-
+# Allows for training to be skipped (ie when model is pretrained) and only a single validation and test set to be evaluated
 if not args.log_hparams_only:
     # At any point you can hit Ctrl + C to break out of training early.
     try:
@@ -364,6 +388,8 @@ if not args.log_hparams_only:
                       'valid ppl {:8.2f} | valid bpc {:8.3f}'.format(
                     epoch, (time.time() - epoch_start_time), val_loss2, math.exp(val_loss2), val_loss2 / math.log(2)))
                 print('-' * 89)
+
+# -------------------------------------Added tensorboard logging------------------------------------------------------ #
                 writer.add_scalar('valid/loss', val_loss2, epoch)
                 writer.add_scalar('valid/ppl', math.exp(val_loss2), epoch)
                 writer.add_scalar('valid/bpc (token)', val_loss2 / math.log(2), epoch)
@@ -383,6 +409,8 @@ if not args.log_hparams_only:
                       'valid ppl {:8.2f} | valid bpc {:8.3f}'.format(
                     epoch, (time.time() - epoch_start_time), val_loss, math.exp(val_loss), val_loss / math.log(2)))
                 print('-' * 89)
+
+# -------------------------------------Added tensorboard logging------------------------------------------------------ #
                 writer.add_scalar('valid/loss', val_loss, epoch)
                 writer.add_scalar('valid/ppl', math.exp(val_loss), epoch)
                 writer.add_scalar('valid/bpc (token)', val_loss / math.log(2), epoch)
@@ -392,6 +420,7 @@ if not args.log_hparams_only:
                     print('Saving model (new best validation)')
                     stored_loss = val_loss
 
+                # Changed to allow the switch to ASGD to be skipped easily.
                 if not args.basic:
                     if args.optimizer == 'sgd' and 't0' not in optimizer.param_groups[0] and (
                             len(best_val_loss) > args.nonmono and val_loss > min(best_val_loss[:-args.nonmono])):
@@ -413,9 +442,16 @@ if not args.log_hparams_only:
         print('-' * 89)
         print('Exiting from training early')
 
+
+# ----------------------------------------Written by Luc Hayward------------------------------------------------------ #
 # Load the best saved model.
 model_load(args.save)
 print('Loaded best saved model')
+
+# Added final evaluation on the validation and test sets using best saved model (regardless of the effect of
+# over-fitting the training data, will reload the last best validation model).
+# Logs the validation score to the hparams tensorboard log to allow for easy comparisons of the different parameter
+# tuning experiments. Test values specifically not logged to prevent tuning on test results.
 
 if args.log_hparams_only:
     stored_loss = evaluate(val_data, eval_batch_size)
@@ -431,7 +467,7 @@ print('=' * 89)
 
 print('| End of training | test loss {:5.2f} | test ppl {:8.2f} | test bpc {:8.3f}'.format(
     test_loss, math.exp(test_loss),
-    test_loss / math.log(2) / corpus.dictionary.avg_characters_per_token.get('test')))  # NOTE: Ask Jan about bpc here
+    test_loss / math.log(2) / corpus.dictionary.avg_characters_per_token.get('test')))
 
 writer.add_scalar('test/loss', test_loss, 0)
 writer.add_scalar('test/ppl', math.exp(test_loss), 0)

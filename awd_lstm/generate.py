@@ -3,6 +3,9 @@
 #
 # This file generates new sentences sampled from the language model
 #
+# Written initially by the AWD-LSTM team but with significant errors throughout.
+# Worked on improving the code and fixing the errors/inconsistencies.
+# Ultimately went unused as there was not time for user-testing of generated texts
 ###############################################################################
 
 import argparse
@@ -50,6 +53,8 @@ if torch.cuda.is_available():
 if args.temperature < 1e-3:
     parser.error("--temperature has to be greater or equal 1e-3")
 
+
+# ----------------------------------------Written by Luc Hayward------------------------------------------------------ #
 with open(args.checkpoint, 'rb') as f:
     if torch.cuda.is_available():
         model = torch.load(f)
@@ -60,6 +65,9 @@ with open(args.checkpoint, 'rb') as f:
 model.eval()
 if args.model == 'QRNN':
     model.reset()
+# -------------------------------------------------------------------------------------------------------------------- #
+
+
 
 if args.cuda:
     model.cuda()
@@ -76,6 +84,8 @@ debug_print("Random initial word: " + corpus.dictionary.idx2word[input.item()], 
 if args.cuda:
     input.data = input.data.cuda()
 
+# ----------------------------------------Written by Luc Hayward------------------------------------------------------ #
+# ------------------------------- Started rewriting to fix multiple breaking bugs ------------------------------------ #
 with open(args.outf, 'w') as outf:
     if args.seed_words:
         args.seed_words = args.seed_words.split()
@@ -101,7 +111,7 @@ with open(args.outf, 'w') as outf:
 
         # Tensor where each row contains 1 index sampled from the multinomial probability distribution of word_weights
         # Samples as expected (higher weight is more likely)
-        word_idx = torch.multinomial(word_weights, 1)[0] # CHECK: Can this produce anything except 0-400?
+        word_idx = torch.multinomial(word_weights, 1)[0]
         word_idxs.append(word_idx) #Luc Code
 
         if args.debug:
@@ -113,6 +123,6 @@ with open(args.outf, 'w') as outf:
         word = corpus.dictionary.idx2word[word_idx]
 
         outf.write(word + ('\n' if i % 20 == 19 else ' '))
-        print(word, end=('\n' if i % 20 == 19 else ' '))  # TODO: Change this to actually have newlines
+        print(word, end=('\n' if i % 20 == 19 else ' '))
         if i % args.log_interval == 0:
             print('\n| Generated {}/{} words |'.format(i, args.words))

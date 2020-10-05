@@ -1,3 +1,5 @@
+# Written by Luc Hayward (HYWLUC) in full
+
 import argparse
 import os
 

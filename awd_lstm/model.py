@@ -1,3 +1,5 @@
+# Written in full by the AWD-LSTM team, class BasicModel (line 118) written by Luc Hayward (HYWLUC001) but used.
+
 import torch
 import torch.nn as nn
 
@@ -51,7 +53,10 @@ class RNNModel(nn.Module):
         if tie_weights:
             # if nhid != ninp:
             #    raise ValueError('When using the tied flag, nhid must be equal to emsize')
-            self.decoder.weight = self.encoder.weight  # NOTE: This is really awful code and is just overwriting this one tiny part of the decoders varibales
+            # NOTE: This is really awful code and is just overwriting this one tiny part of the decoders variables, if
+            # your models aren't displaying correctly this is why. Specifically ruins the display of the decoder models
+            # dimensions as they stay the original decode dimensions even though the weights have been tied
+            self.decoder.weight = self.encoder.weight
 
         self.init_weights()
 
@@ -116,6 +121,7 @@ class RNNModel(nn.Module):
 
 
 class BasicModel(nn.Module):
+    """Started work on a custom alternate LSTM model, unused"""
     def __init__(self, ntoken, ninp, nhid, nlayers, dropout=0):
         super(BasicModel, self).__init__()
         self.embedding = nn.Embedding(ntoken, ninp)

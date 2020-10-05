@@ -1,3 +1,6 @@
+# Written in full by the AWD-LSTM team, unchanged and unused.
+
+
 echo "=== Acquiring datasets ==="
 echo "---"
 mkdir -p save

@@ -1,3 +1,5 @@
+# Written in full by the AWD-LSTM team, unchanged.
+
 import numpy as np
 
 import torch

@@ -1,3 +1,5 @@
+#  Written in part by both Stuart Mesham (MSHSTU001) and Luc Hayward (HYWLUC001)
+
 import re
 import argparse
 import requests

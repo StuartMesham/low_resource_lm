@@ -1,3 +1,5 @@
+#  Written in part by both Stuart Mesham (MSHSTU001) and Luc Hayward (HYWLUC001)
+
 import re
 import argparse
 import requests
@@ -33,7 +35,6 @@ for url in repo_urls:
             article = zip.open(name).read().decode('utf-8').strip()
 
             # fix cases where they don't have spaces between sentences
-            # TODO Jan: How should we clean end of sentences
             article = re.sub(r'\.(?! )', '. ', article)
             article = re.sub(r'\!(?! )', '! ', article)
             article = re.sub(r'\?(?! )', '? ', article)
@@ -44,7 +45,6 @@ for url in repo_urls:
             # remove brackets with numbers in them (they seemed to appear often)
             article = re.sub(r'\(\d*\)', '', article)
 
-            # TODO Jan: How are we tokenizing
             # remove extra whitespace
             article = re.sub('\\s+', ' ', article)
 

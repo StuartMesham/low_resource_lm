@@ -1,3 +1,5 @@
+# Written in full by the AWD-LSTM team, unchanged.
+
 from collections import defaultdict
 
 import torch

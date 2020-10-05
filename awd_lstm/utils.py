@@ -1,3 +1,5 @@
+# Written in full by the AWD-LSTM team, get_basic_batch (line 32) written by Luc Hayward (HYWLUC001) but used.
+
 import torch
 
 
@@ -30,6 +32,7 @@ def get_batch(source, i, args, seq_len=None, evaluation=False):
 
 
 def get_basic_batch(source, i, args, seq_len=None):
+    """Written by Luc Hayward (HYWLUC001), ultimately unused"""
     seq_len = min(seq_len if seq_len else args.bptt, len(source) - 1 - i)
     data = source[i:i + seq_len]
     target = source[i + 1:i + 1 + seq_len]
