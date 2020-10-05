@@ -1,4 +1,4 @@
-# Written in part by both Stuart Mesham (MSHSTU001) and Luc Hayward (HYWLUC001)
+# Written by luc Hayward (HYWLUC001)
 
 #!/bin/bash
 export PYTHONPATH=$PYTHONPATH:`pwd`/scripts
