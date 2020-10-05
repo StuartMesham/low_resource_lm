@@ -1,6 +1,6 @@
 # Low-Resource Language Modelling
 
-Implementation of a multilingual GPT-2 and utilities for downloading and preprocessing training data.
+An implementation of a multilingual GPT-2 and utilities for downloading and preprocessing training data.
 
 ## Usage example
 Ensure that all scripts are run from the root directory.
