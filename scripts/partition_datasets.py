@@ -1,3 +1,5 @@
+# Written by Luc Hayward (HYWLUC001)
+
 import argparse
 
 parser = argparse.ArgumentParser(description="Separates the datasets into test/train/validate sets")

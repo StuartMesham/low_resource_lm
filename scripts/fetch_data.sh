@@ -1,4 +1,7 @@
 #!/bin/bash
+
+# Written by Luc Hayward (HYWLUC001)
+
 export PYTHONPATH=$PYTHONPATH:`pwd`/scripts
 
 echo 'fetching nchlt data'

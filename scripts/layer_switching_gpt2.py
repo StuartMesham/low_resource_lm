@@ -1,3 +1,5 @@
+# Written by Stuart Mesham (MSHSTU001)
+
 import warnings
 
 import torch
@@ -11,10 +13,13 @@ from transformers.modeling_outputs import BaseModelOutputWithPast, CausalLMOutpu
 
 class LayerSwitchingGPT2Config(PretrainedConfig):
     """
-    This is the configuration class to store the configuration of a :class:`~transformers.GPT2Model`.
-    It is used to instantiate an GPT-2 model according to the specified arguments, defining the model
-    architecture. Instantiating a configuration with the defaults will yield a similar configuration to that of
-    the GPT-2 `small <https://huggingface.co/gpt2>`__ architecture.
+    Adapted from Huggingface's GPT2Config class.
+    Supports language specific layers, language specific input embeddings and modified Soft-Decoupled
+    Encodings.
+
+    This is the configuration class to store the configuration of a :class:`LayerSwitchingGPT2Model`.
+    It is used to instantiate a GPT-2 model according to the specified arguments, defining the model
+    architecture.
 
     Configuration objects inherit from  :class:`~transformers.PretrainedConfig` and can be used
     to control the model outputs. Read the documentation from  :class:`~transformers.PretrainedConfig`
@@ -48,8 +53,6 @@ class LayerSwitchingGPT2Config(PretrainedConfig):
             Whether or not to use language specific transformations
         inverse_language_specific_transformation (:obj:`bool`, optional, defaults to False):
             Whether or not to use inverse language specific transformations
-        tie_language_specific_transformation_weights (:obj:`bool`, optional, defaults to False):
-            Whether or not to tie inverse language specific transformation weights
         n_languages (:obj:`int`, optional, defaults to 1):
             Number of languages for language specific layers
         n_layer (:obj:`int`, optional, defaults to 12):
@@ -70,19 +73,6 @@ class LayerSwitchingGPT2Config(PretrainedConfig):
             The epsilon to use in the layer normalization layers
         initializer_range (:obj:`float`, optional, defaults to 0.02):
             The standard deviation of the truncated_normal_initializer for initializing all weight matrices.
-
-    Example::
-
-        >>> from transformers import GPT2Model, GPT2Config
-
-        >>> # Initializing a GPT2 configuration
-        >>> configuration = GPT2Config()
-
-        >>> # Initializing a model from the configuration
-        >>> model = GPT2Model(configuration)
-
-        >>> # Accessing the model configuration
-        >>> configuration = model.config
     """
 
     model_type = "gpt2"
@@ -93,14 +83,15 @@ class LayerSwitchingGPT2Config(PretrainedConfig):
         n_positions=1024,
         n_ctx=1024,
         n_embd=768,
+        # ------------------------------START CUSTOM CODE----------------------------------
         n_language_specific_attention_layers=0,
         language_specific_input_embeds=False,
         language_specific_prediction_heads=False,
         language_specific_transformation=False,
         inverse_language_specific_transformation=False,
-        tie_language_specific_transformation_weights=False,
         semantic_concepts=None,
         n_languages=1,
+        # -------------------------------END CUSTOM CODE-----------------------------------
         n_layer=12,
         n_head=12,
         n_inner=None,
@@ -120,14 +111,15 @@ class LayerSwitchingGPT2Config(PretrainedConfig):
         self.n_ctx = n_ctx
         self.n_positions = n_positions
         self.n_embd = n_embd
+        # ------------------------------START CUSTOM CODE----------------------------------
         self.n_language_specific_attention_layers = n_language_specific_attention_layers
         self.language_specific_input_embeds = language_specific_input_embeds
         self.language_specific_prediction_heads = language_specific_prediction_heads
         self.language_specific_transformation = language_specific_transformation
         self.inverse_language_specific_transformation = inverse_language_specific_transformation
-        self.tie_language_specific_transformation_weights = tie_language_specific_transformation_weights
         self.semantic_concepts = semantic_concepts
         self.n_languages = n_languages
+        # -------------------------------END CUSTOM CODE-----------------------------------
         self.n_layer = n_layer
         self.n_head = n_head
         self.n_inner = n_inner
@@ -158,19 +150,21 @@ class LayerSwitchingGPT2Config(PretrainedConfig):
         return self.n_layer
 
 
-
-class Block(nn.Module):
+class LayerSwitchingBlock(nn.Module):
+    """
+    Supports language specific attentions.
+    Adapted from the Block class of the Huggingface GPT-2 implementation
+    """
     def __init__(self, n_ctx, config, scale=False, n_languages=1):
         super().__init__()
         self.n_languages = n_languages
         hidden_size = config.n_embd
         inner_dim = config.n_inner if config.n_inner is not None else 4 * hidden_size
         self.ln_1 = nn.LayerNorm(hidden_size, eps=config.layer_norm_epsilon)
+        # ------------------------------START CUSTOM CODE----------------------------------
         self.attn = nn.ModuleList([Attention(hidden_size, n_ctx, config, scale) for _ in range(n_languages)])
+        # -------------------------------END CUSTOM CODE-----------------------------------
         self.ln_2 = nn.LayerNorm(hidden_size, eps=config.layer_norm_epsilon)
-        # if config.add_cross_attention:
-        #     self.crossattention = Attention(hidden_size, n_ctx, config, scale, is_cross_attention=True)
-        #     self.ln_cross_attn = nn.LayerNorm(hidden_size, eps=config.layer_norm_epsilon)
         self.mlp = MLP(inner_dim, config)
 
     def forward(
@@ -179,15 +173,13 @@ class Block(nn.Module):
         layer_past=None,
         attention_mask=None,
         head_mask=None,
-        # encoder_hidden_states=None,
-        # encoder_attention_mask=None,
         use_cache=False,
         output_attentions=False,
-        language=0,
+        language=0,  # CUSTOM CODE
     ):
-        assert language < self.n_languages
+        assert language < self.n_languages  # CUSTOM CODE
 
-        attn_outputs = self.attn[language](
+        attn_outputs = self.attn[language](  # CUSTOM CODE
             self.ln_1(hidden_states),
             layer_past=layer_past,
             attention_mask=attention_mask,
@@ -200,24 +192,6 @@ class Block(nn.Module):
         # residual connection
         hidden_states = attn_output + hidden_states
 
-        # if encoder_hidden_states is not None:
-        #     # add one self-attention block for cross-attention
-        #     assert hasattr(
-        #         self, "crossattention"
-        #     ), f"If `encoder_hidden_states` are passed, {self} has to be instantiated with cross-attention layers by setting `config.add_cross_attention=True`"
-        #     cross_attn_outputs = self.crossattention(
-        #         self.ln_cross_attn(hidden_states),
-        #         attention_mask=attention_mask,
-        #         head_mask=head_mask,
-        #         encoder_hidden_states=encoder_hidden_states,
-        #         encoder_attention_mask=encoder_attention_mask,
-        #         output_attentions=output_attentions,
-        #     )
-        #     attn_output = cross_attn_outputs[0]
-        #     # residual connection
-        #     hidden_states = hidden_states + attn_output
-        #     outputs = outputs + cross_attn_outputs[1:]  # add cross attentions if we output attention weights
-
         feed_forward_hidden_states = self.mlp(self.ln_2(hidden_states))
         # residual connection
         hidden_states = hidden_states + feed_forward_hidden_states
@@ -226,7 +200,11 @@ class Block(nn.Module):
         return outputs  # hidden_states, present, (cross_attentions, attentions)
 
 
+# ------------------------------START CUSTOM CODE----------------------------------
 class SemanticEmbedding(nn.Module):
+    """
+    Implementation of semantic embeddings described in https://arxiv.org/abs/1902.03499
+    """
     def __init__(self, num_embeddings: int, embedding_dim: int,):
         super().__init__()
 
@@ -241,15 +219,21 @@ class SemanticEmbedding(nn.Module):
         temp = torch.matmul(input_embeddings, self.weight.t())
         temp = torch.softmax(temp, dim=2)
         return torch.matmul(temp, self.weight)
+# -------------------------------END CUSTOM CODE-----------------------------------
 
 
 class LayerSwitchingGPT2Model(GPT2PreTrainedModel):
+    """
+    Supports language specific layers, input embeddings and modified Soft-Decoupled Encodings.
+    Adapted from the Huggingface GPT2Model.
+    """
 
-    config_class = LayerSwitchingGPT2Config
+    config_class = LayerSwitchingGPT2Config  # CUSTOM CODE
 
     def __init__(self, config):
         super().__init__(config)
 
+        # ------------------------------START CUSTOM CODE----------------------------------
         if config.semantic_concepts is not None:
             self.lse = SemanticEmbedding(config.semantic_concepts, config.n_embd)
 
@@ -268,6 +252,7 @@ class LayerSwitchingGPT2Model(GPT2PreTrainedModel):
                 nn.Linear(self.config.n_embd, self.config.n_embd, bias=False)
                 for _ in range(config.n_languages)
             ])
+        # ------------------------------END CUSTOM CODE-----------------------------------
 
         self.wpe = nn.Embedding(config.n_positions, config.n_embd)
 
@@ -275,35 +260,31 @@ class LayerSwitchingGPT2Model(GPT2PreTrainedModel):
 
         self.h = nn.ModuleList()
         for i in range(config.n_layer):
+            # ------------------------------START CUSTOM CODE----------------------------------
             if i < config.n_language_specific_attention_layers:
-                self.h.append(Block(config.n_ctx, config, scale=True, n_languages=config.n_languages))
+                self.h.append(LayerSwitchingBlock(config.n_ctx, config, scale=True, n_languages=config.n_languages))
             else:
-                self.h.append(Block(config.n_ctx, config, scale=True, n_languages=1))
+                self.h.append(LayerSwitchingBlock(config.n_ctx, config, scale=True, n_languages=1))
+            # ------------------------------END CUSTOM CODE-----------------------------------
 
         self.ln_f = nn.LayerNorm(config.n_embd, eps=config.layer_norm_epsilon)
 
+        # ------------------------------START CUSTOM CODE----------------------------------
         if self.config.inverse_language_specific_transformation:
-            assert self.config.language_specific_transformation
-
             self.inverse_language_specific_transformations = nn.ModuleList([
                 nn.Linear(self.config.n_embd, self.config.n_embd, bias=False)
                 for _ in range(config.n_languages)
             ])
+        # ------------------------------END CUSTOM CODE-----------------------------------
 
         self.init_weights()
 
-    def tie_weights(self):
-        if self.config.tie_language_specific_transformation_weights:
-            assert self.config.language_specific_transformation and self.config.inverse_language_specific_transformation
-            assert len(self.language_specific_transformations) == len(self.inverse_language_specific_transformations)
-
-            for input_intermediate_ff, output_intermediate_ff in zip(self.language_specific_transformations, self.inverse_language_specific_transformations):
-                output_intermediate_ff.weight = nn.Parameter(input_intermediate_ff.weight.transpose(0, 1))
-
-
     def _init_weights(self, module):
-        """Initialize the weights."""
-        if isinstance(module, (nn.Linear, nn.Embedding, Conv1D, SemanticEmbedding)):
+        """
+        Initialize the weights.
+        Modified from huggingface implementation to include Semantic Embeddings.
+        """
+        if isinstance(module, (nn.Linear, nn.Embedding, Conv1D, SemanticEmbedding)):  # CUSTOM CODE
             # Slightly different from the TF version which uses truncated_normal for initialization
             # cf https://github.com/pytorch/pytorch/pull/5617
             module.weight.data.normal_(mean=0.0, std=self.config.initializer_range)
@@ -312,7 +293,6 @@ class LayerSwitchingGPT2Model(GPT2PreTrainedModel):
         elif isinstance(module, nn.LayerNorm):
             module.bias.data.zero_()
             module.weight.data.fill_(1.0)
-
 
     def get_input_embeddings(self):
         return self.wte
@@ -327,13 +307,6 @@ class LayerSwitchingGPT2Model(GPT2PreTrainedModel):
         for layer, heads in heads_to_prune.items():
             self.h[layer].attn.prune_heads(heads)
 
-    # @add_start_docstrings_to_callable(GPT2_INPUTS_DOCSTRING)
-    # @add_code_sample_docstrings(
-    #     tokenizer_class=_TOKENIZER_FOR_DOC,
-    #     checkpoint="gpt2",
-    #     output_type=BaseModelOutputWithPast,
-    #     config_class=_CONFIG_FOR_DOC,
-    # )
     def forward(
         self,
         input_ids=None,
@@ -342,13 +315,11 @@ class LayerSwitchingGPT2Model(GPT2PreTrainedModel):
         position_ids=None,
         head_mask=None,
         inputs_embeds=None,
-        encoder_hidden_states=None,
-        encoder_attention_mask=None,
         use_cache=None,
         output_attentions=None,
         output_hidden_states=None,
         return_dict=None,
-        language=0,
+        language=0,  # CUSTOM CODE
         **kwargs,
     ):
         if "past" in kwargs:
@@ -410,23 +381,13 @@ class LayerSwitchingGPT2Model(GPT2PreTrainedModel):
             attention_mask = attention_mask.to(dtype=next(self.parameters()).dtype)  # fp16 compatibility
             attention_mask = (1.0 - attention_mask) * -10000.0
 
-        # If a 2D ou 3D attention mask is provided for the cross-attention
-        # we need to make broadcastabe to [batch_size, num_heads, seq_length, seq_length]
-        if self.config.add_cross_attention and encoder_hidden_states is not None:
-            encoder_batch_size, encoder_sequence_length, _ = encoder_hidden_states.size()
-            encoder_hidden_shape = (encoder_batch_size, encoder_sequence_length)
-            if encoder_attention_mask is None:
-                encoder_attention_mask = torch.ones(encoder_hidden_shape, device=device)
-            encoder_attention_mask = self.invert_attention_mask(encoder_attention_mask)
-        else:
-            encoder_attention_mask = None
-
         # Prepare head mask if needed
         # 1.0 in head_mask indicate we keep the head
         # attention_probs has shape bsz x n_heads x N x N
         # head_mask has shape n_layer x batch x n_heads x N x N
         head_mask = self.get_head_mask(head_mask, self.config.n_layer)
 
+        # ------------------------------START CUSTOM CODE----------------------------------
         if inputs_embeds is None:
             if self.config.language_specific_input_embeds:
                 inputs_embeds = self.wte[language](input_ids)
@@ -438,6 +399,7 @@ class LayerSwitchingGPT2Model(GPT2PreTrainedModel):
 
         if self.config.semantic_concepts is not None:
             inputs_embeds = inputs_embeds + self.lse(inputs_embeds)
+        # -------------------------------END CUSTOM CODE-----------------------------------
 
         position_embeds = self.wpe(position_ids)
 
@@ -458,11 +420,9 @@ class LayerSwitchingGPT2Model(GPT2PreTrainedModel):
                 layer_past=layer_past,
                 attention_mask=attention_mask,
                 head_mask=head_mask[i],
-                # encoder_hidden_states=encoder_hidden_states,
-                # encoder_attention_mask=encoder_attention_mask,
                 use_cache=use_cache,
                 output_attentions=output_attentions,
-                language=language if i < self.config.n_language_specific_attention_layers else 0,
+                language=language if i < self.config.n_language_specific_attention_layers else 0,  # CUSTOM CODE
             )
 
             hidden_states, present = outputs[:2]
@@ -474,8 +434,10 @@ class LayerSwitchingGPT2Model(GPT2PreTrainedModel):
 
         hidden_states = self.ln_f(hidden_states)
 
+        # ------------------------------START CUSTOM CODE----------------------------------
         if self.config.inverse_language_specific_transformation:
             hidden_states = torch.tanh(self.inverse_language_specific_transformations[language](hidden_states))
+        # -------------------------------END CUSTOM CODE-----------------------------------
 
         hidden_states = hidden_states.view(*output_shape)
         # Add last hidden state
@@ -494,12 +456,17 @@ class LayerSwitchingGPT2Model(GPT2PreTrainedModel):
 
 
 class GPT2LayerSwitchingLMHeadModel(GPT2PreTrainedModel):
+    """
+    Supports language specific layers, input embeddings and modified Soft-Decoupled Encodings.
+    Adapted the Huggingface GPT2LMHeadModel implementation.
+    """
 
-    config_class = LayerSwitchingGPT2Config
+    config_class = LayerSwitchingGPT2Config  # CUSTOM CODE
 
     def __init__(self, config):
         super().__init__(config)
 
+        # ------------------------------START CUSTOM CODE----------------------------------
         if self.config.language_specific_input_embeds != self.config.language_specific_prediction_heads:
             assert not config.tie_word_embeddings
 
@@ -512,19 +479,19 @@ class GPT2LayerSwitchingLMHeadModel(GPT2PreTrainedModel):
             self.lm_heads = nn.ModuleList([nn.Linear(config.n_embd, config.vocab_size, bias=False) for _ in range(config.n_languages)])
         else:
             self.lm_heads = nn.ModuleList([nn.Linear(config.n_embd, config.vocab_size, bias=False)])
+        # -------------------------------END CUSTOM CODE-----------------------------------
 
         self.init_weights()
 
     def tie_weights(self):
         """
         Tie the weights between the input embeddings and the output embeddings.
-
-        If the :obj:`torchscript` flag is set in the configuration, can't handle parameter sharing so we are cloning
-        the weights instead.
         """
         if self.config.tie_word_embeddings:
+            # ------------------------------START CUSTOM CODE----------------------------------
             for input_embeddings, output_embeddings in zip(self.get_input_embeddings(), self.get_output_embeddings()):
                 self._tie_or_clone_weights(output_embeddings, input_embeddings)
+            # -------------------------------END CUSTOM CODE-----------------------------------
 
     def get_output_embeddings(self) -> nn.Module:
         return self.lm_heads
@@ -534,12 +501,9 @@ class GPT2LayerSwitchingLMHeadModel(GPT2PreTrainedModel):
         input_ids=None,
         past_key_values=None,
         attention_mask=None,
-        language=0,
+        language=0,  # CUSTOM CODE
         position_ids=None,
         head_mask=None,
-        # inputs_embeds=None,
-        encoder_hidden_states=None,
-        encoder_attention_mask=None,
         labels=None,
         use_cache=None,
         output_attentions=None,
@@ -570,21 +534,20 @@ class GPT2LayerSwitchingLMHeadModel(GPT2PreTrainedModel):
             attention_mask=attention_mask,
             position_ids=position_ids,
             head_mask=head_mask,
-            # inputs_embeds=inputs_embeds,
-            encoder_hidden_states=encoder_hidden_states,
-            encoder_attention_mask=encoder_attention_mask,
             use_cache=use_cache,
             output_attentions=output_attentions,
             output_hidden_states=output_hidden_states,
             return_dict=return_dict,
-            language=language,
+            language=language,  # CUSTOM CODE
         )
         hidden_states = transformer_outputs[0]
 
+        # ------------------------------START CUSTOM CODE----------------------------------
         if self.config.language_specific_prediction_heads:
             lm_logits = self.lm_heads[language](hidden_states)
         else:
             lm_logits = self.lm_heads[0](hidden_states)
+        # -------------------------------END CUSTOM CODE-----------------------------------
 
         loss = None
         if labels is not None:
