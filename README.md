@@ -48,7 +48,7 @@ The run experiment logs the results to a file. By default, the file is in `logs/
 ## HuggingFace Library
 
 This implementation relies on the [HuggingFace transformers](https://github.com/huggingface/transformers) library.
-We use a custom fork with the following modifications:
+We use a custom fork with the following minor modifications:
 
 1. An early stopping feature added to the Trainer class as per [this pull request](https://github.com/huggingface/transformers/pull/4186).
 2. Bits-per-character evaluation during training added to Trainer class.
