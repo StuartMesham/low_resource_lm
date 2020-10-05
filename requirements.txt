@@ -1,5 +1,14 @@
+args==0.1.0
 certifi==2020.6.20
 chardet==3.0.4
 idna==2.10
+numpy==1.18.4
+Pillow==7.2.0
 requests==2.24.0
+six==1.15.0
+tokenizers==0.8.1rc1
+torch==0.4.1
+torchvision==0.2.2
+tqdm==4.19.9
+tensorboardX==2.1
 urllib3==1.25.9

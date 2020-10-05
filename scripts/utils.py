@@ -1,3 +1,5 @@
+# Written by Stuart Mesham (MSHSTU001) in full
+
 import re
 import unicodedata
 from collections import Counter
