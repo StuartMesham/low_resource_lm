@@ -6,5 +6,5 @@ urllib3==1.25.9
 torch
 tqdm
 tensorboard
--e git://github.com/StuartMesham/transformers.git@low_resource_lm#egg=transformers
+-e git+https://github.com/StuartMesham/transformers.git@low_resource_lm#egg=transformers
 pandas
