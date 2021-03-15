@@ -1,6 +1,3 @@
-# Originally written by the AWD-LSTM team
-# Rewritten and modified heavily by Luc Hayward (HYWLUC001) to allow for flexible BPE libraries provided by HuggingFace
-
 import os
 import torch
 
@@ -28,8 +25,6 @@ class Dictionary(object):
     def __len__(self):
         return len(self.idx2word)
 
-# -------------------------------------------------------------------------------------------------------------------- #
-# ----------------------------------------Written by Luc Hayward------------------------------------------------------ #
 class Corpus(object):
     def __init__(self, path, vocab_size=-1, use_bpe=False, tokenizer_data=""):
         self.dictionary = Dictionary()
@@ -105,8 +100,6 @@ class Corpus(object):
             self.valid = self.tokenize(os.path.join(path, 'valid.txt'))
             self.test = self.tokenize(os.path.join(path, 'test.txt'))
 
-# -------------------------------------------------------------------------------------------------------------------- #
-# -------------------------------------------------------------------------------------------------------------------- #
 
     def tokenize(self, path):
         """Tokenizes a text file."""
