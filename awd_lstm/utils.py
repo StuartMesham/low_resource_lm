@@ -1,5 +1,3 @@
-# Written in full by the AWD-LSTM team, get_basic_batch (line 32) written by Luc Hayward (HYWLUC001) but used.
-
 import torch
 
 
