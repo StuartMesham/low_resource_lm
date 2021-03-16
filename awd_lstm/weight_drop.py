@@ -1,5 +1,3 @@
-# Written in full by the AWD-LSTM team, unchanged.
-
 import torch
 from torch.nn import Parameter
 from functools import wraps
