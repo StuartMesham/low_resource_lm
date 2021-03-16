@@ -1,6 +1,3 @@
-# Written in full by the AWD-LSTM team, unchanged and unused.
-
-
 import argparse
 import time
 import math
