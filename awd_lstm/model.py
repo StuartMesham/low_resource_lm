@@ -1,5 +1,3 @@
-# Written in full by the AWD-LSTM team, class BasicModel (line 118) written by Luc Hayward (HYWLUC001) but used.
-
 import torch
 import torch.nn as nn
 
