@@ -1,3 +1,5 @@
+#  Written by Luc Hayward (HYWLUC001)
+
 import re
 import argparse
 import requests
@@ -33,7 +35,6 @@ for url in repo_urls:
             article = zip.open(name).read().decode('utf-8').strip()
 
             # fix cases where they don't have spaces between sentences
-            # TODO Jan: How should we clean end of sentences
             article = re.sub(r'\.(?! )', '. ', article)
             article = re.sub(r'\!(?! )', '! ', article)
             article = re.sub(r'\?(?! )', '? ', article)
@@ -44,7 +45,6 @@ for url in repo_urls:
             # remove brackets with numbers in them (they seemed to appear often)
             article = re.sub(r'\(\d*\)', '', article)
 
-            # TODO Jan: How are we tokenizing
             # remove extra whitespace
             article = re.sub('\\s+', ' ', article)
 
@@ -65,5 +65,5 @@ corpus = utils.clean_sentences(corpus, min_length=16, illegal_substrings=['@', '
 
 print('total sentences:', len(corpus))
 
-with open(os.path.join(args.output_dir, os.path.basename("isizulu.txt")), 'w', encoding='utf-8') as f:
+with open(os.path.join(args.output_dir + '/isizulu/', os.path.basename("isizulu.txt")), 'w', encoding='utf-8') as f:
     f.write('\n'.join(corpus)+'\n')

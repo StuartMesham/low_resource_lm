@@ -1,4 +1,5 @@
 import argparse
+import os
 
 parser = argparse.ArgumentParser(description="Separates the datasets into test/train/validate sets")
 parser.add_argument('--test_split', default=10, help='Percentage of data to be used for testing')
@@ -22,8 +23,7 @@ nchlt_files = [
     'setswana.txt',
     'siswati.txt',
     'isindebele.txt',
-    'tshivenda.txt',
-    'sesotho.txt',
+    'tshivenda.txt'
 ]
 
 datasets = [[args.autshumato_dir, autshumato_files],
@@ -32,15 +32,15 @@ datasets = [[args.autshumato_dir, autshumato_files],
 
 for dataset in datasets:
     for file in dataset[1]:
-        with open(dataset[0] + file, 'r', encoding='utf-8') as inf:
+        with open(dataset[0] + file[:-4] + '/' + file, 'r', encoding='utf-8') as inf:
             corpus = inf.read()
 
-            with open(dataset[0] + file[:-4] + '_test.txt', 'w', encoding='utf-8') as f:
-                f.write(corpus[:int(len(corpus) * args.test_split/100)])
+            with open(dataset[0] + file[:-4] + '/test.txt', 'w', encoding='utf-8') as f:
+                f.write(corpus[:int(len(corpus) * args.test_split / 100)])
 
-            with open(dataset[0] + file[:-4] + '_train.txt', 'w', encoding='utf-8') as f:
-                f.write(corpus[int(len(corpus) * args.test_split/100):int(len(corpus) * args.train_split/100) + int(
-                    len(corpus) * args.test_split/100)])
+            with open(dataset[0] + file[:-4] + '/train.txt', 'w', encoding='utf-8') as f:
+                f.write(corpus[int(len(corpus) * args.test_split / 100):int(len(corpus) * args.train_split / 100) + int(
+                    len(corpus) * args.test_split / 100)])
 
-            with open(dataset[0] + file[:-4] + '_valid.txt', 'w', encoding='utf-8') as f:
-                f.write(corpus[int(len(corpus) * args.train_split/100) + int(len(corpus) * args.test_split/100):])
+            with open(dataset[0] + file[:-4] + '/valid.txt', 'w', encoding='utf-8') as f:
+                f.write(corpus[int(len(corpus) * args.train_split / 100) + int(len(corpus) * args.test_split / 100):])

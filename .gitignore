@@ -270,3 +270,4 @@ cython_debug/
 .idea
 
 data
+/torch-0.4.1-cp37-cp37m-win_amd64.whl

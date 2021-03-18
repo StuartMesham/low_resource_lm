@@ -3,9 +3,6 @@ import unicodedata
 from collections import Counter
 from statistics import median, stdev
 
-# with help from:
-# https://stackoverflow.com/questions/10294032/python-replace-typographical-quotes-dashes-etc-with-their-ascii-counterparts
-
 quote_characters = []
 for i in range(0, 0x10ffff):
     char = chr(i)
