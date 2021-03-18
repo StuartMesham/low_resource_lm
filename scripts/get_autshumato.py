@@ -1,5 +1,3 @@
-#  Written and provided by Stuart Mesham (MSHSTU001)
-
 import argparse
 import requests
 import zipfile

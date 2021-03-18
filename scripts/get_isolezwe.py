@@ -1,5 +1,3 @@
-#  Written by Luc Hayward (HYWLUC001)
-
 import re
 import argparse
 import requests

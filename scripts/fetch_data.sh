@@ -7,6 +7,13 @@ echo 'fetching nchlt data'
 mkdir -p data/nchlt
 mkdir -p data/nchlt/isizulu
 mkdir -p data/nchlt/sepedi
+mkdir -p data/nchlt/isixhosa
+mkdir -p data/nchlt/xitsonga
+mkdir -p data/nchlt/setswana
+mkdir -p data/nchlt/siswati
+mkdir -p data/nchlt/isindebele
+mkdir -p data/nchlt/tshivenda
+mkdir -p data/nchlt/sesotho
 python3 scripts/get_nchlt.py --output_dir=data/nchlt
 
 echo
