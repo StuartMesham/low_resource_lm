@@ -2,6 +2,8 @@
 Includes the necessary commandline arguments for running each of the models as well as 
 utilities for downloading and preprocessing training data and instructions of how to install the dependencies.
 
+Pretrained model files can be accessed at [10.25375/uct.14345939](https://zivahub.uct.ac.za/articles/software/Pytorch_Language_Models_trained_on_South_African_Languages/14345939)
+
 # LSTM
 Included is a copy of the iPython notebooks from google Colab which will allow for easy running of the project code.
 
