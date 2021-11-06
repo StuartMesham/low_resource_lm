@@ -8,14 +8,27 @@ Pretrained model files can be accessed at [10.25375/uct.14345939](https://zivahu
 Included is a copy of the iPython notebooks from google Colab which will allow for easy running of the project code.
 
 
+
 ## Usage example:
 Ensure that all scripts are run from the root directory, <b>not /scripts/</b>
 
 Models require the same pytorch/CUDA versions as required by the original AWD-LSTM library (see awd_lstm/README.md)
+If those installation instructions do not work we recommend using Conda and Ubuntu. You can install with either
+
+A) ```conda create --name <env> --file <this file>```
+
+or B) 
+```bash
+conda create --name lowlm
+conda activate lowlm
+conda install pytorch=0.4.1 cuda90 -c pytorch
+conda install --file lstm_requirements.txt
+conda install requests
+```
 
 Install requirements:
 ```bash
-pip3 install -r lstm_requirements.txt
+pip3 install -r lstm_requirements.txt.txt
 ```
 If using QRNN models, also install the following:
 ```bash

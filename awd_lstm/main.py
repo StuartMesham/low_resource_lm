@@ -10,7 +10,7 @@ import torch
 import torch.nn as nn
 
 # Included tensorboardX required for tensorboard logging integration with the older pytorch0.4.1 library.
-from tensorboardX import SummaryWriter
+# from tensorboardX import SummaryWriter
 from datetime import datetime
 import os
 
@@ -74,7 +74,6 @@ parser.add_argument('--optimizer', type=str, default='sgd',
 parser.add_argument('--when', nargs="+", type=int, default=[-1],
                     help='When (which epochs) to divide the learning rate by 10 - accepts multiple')
 
-
 # -----------------------------------------Written by Luc Hayward----------------------------------------------------- #
 parser.add_argument('--vocab_size', default=5000, help='size of vocab ONLY IF using bpe', type=int)
 parser.add_argument('--use_bpe', default=True, help='use huggingface byte level bpe tokenizer')
@@ -85,17 +84,18 @@ parser.add_argument('--log_hparams_only', default=False,
                     help='Skip training and jump straight to logging validation score for hparams metrics')
 parser.add_argument('--basic', default=False)
 parser.add_argument('--chpc', default=False, help='Changes the tensoboard logging for chpc logging (no google drive)')
-parser.add_argument('--tokenizer_data', default="", help='Used when taking a model trained on one domain (this) and run against a different domain')
+parser.add_argument('--tokenizer_data', default="",
+                    help='Used when taking a model trained on one domain (this) and run against a different domain')
 args = parser.parse_args()
 args.tied = True
 run_name = str(args.data).replace('/', '-') + "/" + args.model + "/" + datetime.now().strftime(
     "%d|%H:%M") + "_" + args.descriptive_name
 drive_name = "/content/drive/My Drive/Colab Notebooks/"
-writer = SummaryWriter((drive_name if not args.chpc else '') + 'runs/' + run_name)
+# writer = SummaryWriter((drive_name if not args.chpc else '') + 'runs/' + run_name)
 sargs = ''
 for arg in vars(args):
     sargs += ("{:<16}: {}  \n".format(str(arg), str(getattr(args, arg))))
-if not args.log_hparams_only: writer.add_text('args', sargs)
+# if not args.log_hparams_only: writer.add_text('args', sargs)
 print(sargs)
 # ------------------------------------------------------------------------------------------------------------------- #
 
@@ -114,23 +114,25 @@ if torch.cuda.is_available():
 # Load data
 ###############################################################################
 
-def model_save(fn):
-    with open(fn, 'wb') as f:
+def model_save(file_name):
+    with open(file_name, 'wb') as f:
         torch.save([model, criterion, optimizer], f)
+
 
 # -----------------------------------------Adjusted by Luc Hayward---------------------------------------------------- #
 
-def model_load(fn):
+def model_load(file_name):
     """
     Loads the model and associated optimizer and criterion
     - Fixed the issue where cuda check is not performed causing crashes
     """
     global model, criterion, optimizer
-    with open(fn, 'rb') as f:
+    with open(file_name, 'rb') as f:
         if torch.cuda.is_available():
             model, criterion, optimizer = torch.load(f)
         else:
             model, criterion, optimizer = torch.load(f, map_location='cpu')
+
 
 # -------------------------------------------------------------------------------------------------------------------- #
 
@@ -162,6 +164,7 @@ from splitcross import SplitCrossEntropyLoss
 criterion = None
 
 ntokens = len(corpus.dictionary)
+
 
 # ------------------------------------------Written by Luc Hayward---------------------------------------------------- #
 
@@ -219,7 +222,6 @@ else:
 # -------------------------------------------------------------------------------------------------------------------- #
 
 
-
 if args.resume:
     print('Resuming model ...')
     model_load(args.resume)
@@ -257,11 +259,13 @@ print('Args:', args)
 print('Model total parameters:', total_params)
 
 # -------------------------------------Added tensorboard logging------------------------------------------------------ #
-writer.add_scalar('total_params', total_params)
+# writer.add_scalar('total_params', total_params)
 print(model)
-if not args.log_hparams_only: writer.add_text('model_structure',
-                                              "Total Params: " + str(total_params) + "  \n" + str(model).replace('\n',
-                                                                                                                 '  \n'))
+
+
+# if not args.log_hparams_only: writer.add_text('model_structure',
+#                                               "Total Params: " + str(total_params) + "  \n" + str(model).replace('\n',
+#                                                                                                                  '  \n'))
 
 
 ###############################################################################
@@ -285,7 +289,7 @@ def evaluate(data_source, batch_size=10):
 
 
 def train():
-    global writer
+    # global writer
     # Turn on training mode which enables dropout.
     if args.model == 'QRNN': model.reset()
     total_loss = 0
@@ -340,14 +344,14 @@ def train():
                 epoch, batch, len(train_data) // args.bptt, optimizer.param_groups[0]['lr'],
                               elapsed * 1000 / args.log_interval, cur_loss, math.exp(cur_loss),
                               cur_loss / math.log(2)))
-    # Note: BPC is WRONG here! Need to divide again by characters/token to get actual BPC value. This is Bits per Token
+            # Note: BPC is WRONG here! Need to divide again by characters/token to get actual BPC value. This is Bits per Token
 
-# -------------------------------------Added tensorboard logging------------------------------------------------------ #
-            writer.add_scalar('train/loss', cur_loss, (epoch - 1) * (len(train_data) // args.bptt) + batch)
-            writer.add_scalar('train/ppl', math.exp(cur_loss), (epoch - 1) * (len(train_data) // args.bptt) + batch)
-            writer.add_scalar('train/bpc (token)', cur_loss / math.log(2),
-                              (epoch - 1) * (len(train_data) // args.bptt) + batch)
-# -------------------------------------------------------------------------------------------------------------------- #
+            # -------------------------------------Added tensorboard logging------------------------------------------------------ #
+            #             writer.add_scalar('train/loss', cur_loss, (epoch - 1) * (len(train_data) // args.bptt) + batch)
+            #             writer.add_scalar('train/ppl', math.exp(cur_loss), (epoch - 1) * (len(train_data) // args.bptt) + batch)
+            #             writer.add_scalar('train/bpc (token)', cur_loss / math.log(2),
+            #                               (epoch - 1) * (len(train_data) // args.bptt) + batch)
+            # -------------------------------------------------------------------------------------------------------------------- #
 
             total_loss = 0
             start_time = time.time()
@@ -389,10 +393,10 @@ if not args.log_hparams_only:
                     epoch, (time.time() - epoch_start_time), val_loss2, math.exp(val_loss2), val_loss2 / math.log(2)))
                 print('-' * 89)
 
-# -------------------------------------Added tensorboard logging------------------------------------------------------ #
-                writer.add_scalar('valid/loss', val_loss2, epoch)
-                writer.add_scalar('valid/ppl', math.exp(val_loss2), epoch)
-                writer.add_scalar('valid/bpc (token)', val_loss2 / math.log(2), epoch)
+                # -------------------------------------Added tensorboard logging------------------------------------------------------ #
+                #                 writer.add_scalar('valid/loss', val_loss2, epoch)
+                #                 writer.add_scalar('valid/ppl', math.exp(val_loss2), epoch)
+                #                 writer.add_scalar('valid/bpc (token)', val_loss2 / math.log(2), epoch)
 
                 if val_loss2 < stored_loss:
                     model_save(args.save)
@@ -410,10 +414,10 @@ if not args.log_hparams_only:
                     epoch, (time.time() - epoch_start_time), val_loss, math.exp(val_loss), val_loss / math.log(2)))
                 print('-' * 89)
 
-# -------------------------------------Added tensorboard logging------------------------------------------------------ #
-                writer.add_scalar('valid/loss', val_loss, epoch)
-                writer.add_scalar('valid/ppl', math.exp(val_loss), epoch)
-                writer.add_scalar('valid/bpc (token)', val_loss / math.log(2), epoch)
+                # -------------------------------------Added tensorboard logging------------------------------------------------------ #
+                #                 writer.add_scalar('valid/loss', val_loss, epoch)
+                #                 writer.add_scalar('valid/ppl', math.exp(val_loss), epoch)
+                #                 writer.add_scalar('valid/bpc (token)', val_loss / math.log(2), epoch)
 
                 if val_loss < stored_loss:
                     model_save(args.save)
@@ -442,7 +446,6 @@ if not args.log_hparams_only:
         print('-' * 89)
         print('Exiting from training early')
 
-
 # ----------------------------------------Written by Luc Hayward------------------------------------------------------ #
 # Load the best saved model.
 model_load(args.save)
@@ -455,10 +458,10 @@ print('Loaded best saved model')
 
 if args.log_hparams_only:
     stored_loss = evaluate(val_data, eval_batch_size)
-writer.add_hparams(args.__dict__,
-                   {'hparam/val_loss': stored_loss,
-                    'hparam/val_bpc': stored_loss / math.log(2) / corpus.dictionary.avg_characters_per_token.get(
-                        'valid')})
+# writer.add_hparams(args.__dict__,
+#                    {'hparam/val_loss': stored_loss,
+#                     'hparam/val_bpc': stored_loss / math.log(2) / corpus.dictionary.avg_characters_per_token.get(
+#                         'valid')})
 
 print("Evaluating on test data...")
 # Run on test data.
@@ -469,7 +472,7 @@ print('| End of training | test loss {:5.2f} | test ppl {:8.2f} | test bpc {:8.3
     test_loss, math.exp(test_loss),
     test_loss / math.log(2) / corpus.dictionary.avg_characters_per_token.get('test')))
 
-writer.add_scalar('test/loss', test_loss, 0)
-writer.add_scalar('test/ppl', math.exp(test_loss), 0)
-writer.add_scalar('test/bpc', test_loss / math.log(2) / corpus.dictionary.avg_characters_per_token.get('test'), 0)
+# writer.add_scalar('test/loss', test_loss, 0)
+# writer.add_scalar('test/ppl', math.exp(test_loss), 0)
+# writer.add_scalar('test/bpc', test_loss / math.log(2) / corpus.dictionary.avg_characters_per_token.get('test'), 0)
 print('=' * 89)
